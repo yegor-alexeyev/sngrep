@@ -608,6 +608,9 @@ capture_packet_reasm_tcp(capture_info_t *capinfo, packet_t *packet, struct tcphd
     u_char *new_payload;
     u_char full_payload[MAX_CAPTURE_LEN + 1];
 
+
+    fprintf(stderr, "[Capture][TCP] New TCP packet at capture_packet_reasm_tcp with %d bytes\n", size_payload);
+
     //! Assembled
     if ((int32_t) size_payload <= 0)
         return packet;
@@ -621,6 +624,8 @@ capture_packet_reasm_tcp(capture_info_t *capinfo, packet_t *packet, struct tcphd
 
     // If we already have this packet stored
     if (pkt) {
+        fprintf(stderr, "[Capture][TCP] Found TCP stream data in assembly vector\n");
+
         frame_t *frame;
         // Append this frames to the original packet
         vector_iter_t frames = vector_iterator(packet->frames);
@@ -633,6 +638,7 @@ capture_packet_reasm_tcp(capture_info_t *capinfo, packet_t *packet, struct tcphd
         pkt = packet;
         // Add To the possible reassembly list
         vector_append(capinfo->tcp_reasm, packet);
+        fprintf(stderr, "[Capture][TCP] New TCP stream data added to assembly vector\n");
     }
 
     // Store firt tcp sequence
@@ -642,11 +648,13 @@ capture_packet_reasm_tcp(capture_info_t *capinfo, packet_t *packet, struct tcphd
 
     // If the first frame of this packet
     if (vector_count(pkt->frames) == 1) {
+        fprintf(stderr, "[Capture][TCP] Packet has a single frame, setting payload [%d bytes]\n", size_payload);
         // Set initial payload
         packet_set_payload(pkt, payload, size_payload);
     } else {
         // Check payload length. Dont handle too big payload packets
         if (pkt->payload_len + size_payload > MAX_CAPTURE_LEN) {
+            fprintf(stderr, "[Capture][TCP] Assembled packet is too big, ignoring..\n");
             packet_destroy(pkt);
             vector_remove(capinfo->tcp_reasm, pkt);
             return NULL;
@@ -662,6 +670,7 @@ capture_packet_reasm_tcp(capture_info_t *capinfo, packet_t *packet, struct tcphd
             memcpy(new_payload, payload, size_payload);
             memcpy(new_payload + size_payload, pkt->payload, pkt->payload_len);
         }
+        fprintf(stderr, "[Capture][TCP] Assembled packet with multiple frames [%d bytes]\n", pkt->payload_len + size_payload);
         packet_set_payload(pkt, new_payload, pkt->payload_len + size_payload);
         sng_free(new_payload);
     }
@@ -674,10 +683,12 @@ capture_packet_reasm_tcp(capture_info_t *capinfo, packet_t *packet, struct tcphd
     int original_size = pkt->payload_len;
     int valid = sip_validate_packet(pkt);
     if (valid == VALIDATE_COMPLETE_SIP) {
+        fprintf(stderr, "[Capture][TCP] Assembled packet has valid SIP message\n");
         // Full SIP packet!
         vector_remove(capinfo->tcp_reasm, pkt);
         return pkt;
     } else if (valid == VALIDATE_MULTIPLE_SIP) {
+        fprintf(stderr, "[Capture][TCP] Assembled packet has multiple SIP messages\n");
         vector_remove(capinfo->tcp_reasm, pkt);
 
         // We have a full SIP Packet, but do not remove everything from the reasm queue
@@ -691,8 +702,10 @@ capture_packet_reasm_tcp(capture_info_t *capinfo, packet_t *packet, struct tcphd
         // Return the full initial packet
         return pkt;
     } else if (valid == VALIDATE_NOT_SIP) {
+        fprintf(stderr, "[Capture][TCP] Assembled packet has no valid SIP message\n");
         // Not a SIP packet, store until PSH flag
         if (tcp->th_flags & TH_PUSH) {
+            fprintf(stderr, "[Capture][TCP] Assembled packet TH_PUSH flags\n");
             vector_remove(capinfo->tcp_reasm, pkt);
             return pkt;
         }

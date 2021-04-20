@@ -267,6 +267,8 @@ sip_validate_packet(packet_t *packet)
     int content_len;
     int bodylen;
 
+    fprintf(stderr, "[Capture][SIP] Checking if packet contains SIP message [%d bytes]\n", plen);
+
     // Max SIP payload allowed
     if (plen == 0 || plen > MAX_SIP_PAYLOAD)
         return VALIDATE_NOT_SIP;
@@ -280,12 +282,14 @@ sip_validate_packet(packet_t *packet)
 
     // Check if the first line follows SIP request or response format
     if (regexec(&calls.reg_valid, (const char *) payload, 2, pmatch, 0) != 0) {
+        fprintf(stderr, "[Capture][SIP] Reg valid didn't match payload %s\n", payload);
         // Not a SIP message AT ALL
         return VALIDATE_NOT_SIP;
     }
 
     // Check if we have Content Length header
     if (regexec(&calls.reg_cl, (const char *) payload, 4, pmatch, 0) != 0) {
+        fprintf(stderr, "[Capture][SIP] Reg content length didn't match payload %s\n", payload);
         // Not a SIP message or not complete
         return VALIDATE_PARTIAL_SIP;
     }
@@ -295,6 +299,7 @@ sip_validate_packet(packet_t *packet)
 
     // Check if we have Body separator field
     if (regexec(&calls.reg_body, (const char *) payload, 2, pmatch, 0) != 0) {
+        fprintf(stderr, "[Capture][SIP] Reg body end didn't match payload %s\n", payload);
         // Not a SIP message or not complete
         return VALIDATE_PARTIAL_SIP;
     }
@@ -304,10 +309,14 @@ sip_validate_packet(packet_t *packet)
 
     // The SDP body of the SIP message ends in another packet
     if (content_len > bodylen) {
+        fprintf(stderr, "[Capture][SIP] Message contains a partial SIP message %s\n", payload);
         return VALIDATE_PARTIAL_SIP;
     }
 
+    fprintf(stderr, "[Capture][SIP] Content length: %d - Body length: %d\n", content_len, bodylen);
+
     if (content_len < bodylen) {
+        fprintf(stderr, "[Capture][SIP] Message contains multiple SIP messages %s\n", payload);
         // Check body ends with '\r\n'
         if (payload[pmatch[1].rm_so + content_len - 1] != '\n')
             return VALIDATE_NOT_SIP;
