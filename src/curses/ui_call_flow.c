@@ -184,6 +184,8 @@ call_flow_draw(ui_t *ui)
         sprintf(title, "Call flow for %d dialogs", call_group_count(info->group));
     }
 
+    fprintf(stderr, "[CallFlow] Redrawing %s\n", title);
+
     // Print color mode in title
     if (setting_has_value(SETTING_COLORMODE, "request"))
         strcat(title, " (Color by Request/Response)");
@@ -350,6 +352,10 @@ call_flow_draw_arrows(ui_t *ui)
             vector_append(info->arrows, arrow);
         }
     }
+
+    fprintf(stderr, "[CallFlow] Created %d arrows\n", vector_count(info->arrows));
+
+
     // Create pending RTP arrows
     rtp_stream_t *stream = NULL;
     while ((stream = call_group_get_next_stream(info->group, stream))) {
@@ -663,6 +669,8 @@ call_flow_draw_message(ui_t *ui, call_flow_arrow_t *arrow, int cline)
     }
     wattroff(flow_win, COLOR_PAIR(CP_CYAN_ON_DEF));
 
+    fprintf(stderr, "[CallFlow] Drawing arrow for message %p\n", arrow->item);
+
     return arrow->height;
 }
 
@@ -882,6 +890,8 @@ call_flow_arrow_create(ui_t *ui, void *item, int type)
 
     if ((arrow = call_flow_arrow_find(ui, item)))
         return arrow;
+
+    fprintf(stderr, "[CallFlow] Created arrows for message %p\n", item);
 
     // Create a new arrow of the given type
     arrow = malloc(sizeof(call_flow_arrow_t));

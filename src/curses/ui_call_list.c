@@ -636,6 +636,10 @@ call_list_handle_key(ui_t *ui, int key)
                     group->callid = call->callid;
                 }
 
+                fprintf(stderr, "\n----------------------------------------------------\n");
+                fprintf(stderr, "[CallList] About to display flow with %d messages\n",
+                    call_group_msg_count(group));
+
                 if (action == ACTION_SHOW_RAW) {
                     // Create a Call Flow panel
                     ui_create_panel(PANEL_CALL_RAW);
