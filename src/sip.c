@@ -416,7 +416,7 @@ sip_check_packet(packet_t *packet)
 
     // Add the message to the call
     call_add_message(call, msg);
-    fprintf(stderr, "[Storage] Call with call-id %s has now %d messages\n", callid, call_msg_count(call) );
+    fprintf(stderr, "[Storage] Call %p with call-id %s has now %d messages\n", call, callid, call_msg_count(call) );
 
     // check if message is a retransmission
     call_msg_retrans_check(msg);

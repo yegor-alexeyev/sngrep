@@ -193,12 +193,18 @@ call_group_msg_count(sip_call_group_t *group)
     vector_iter_t msgs;
     int msgcnt = 0, i;
 
+    fprintf(stderr, "[Group] %d calls found in group %p\n", vector_count(group->calls), group);
+
+
     for (i = 0; i < vector_count(group->calls); i++) {
         call = vector_item(group->calls, i);
         msgs = vector_iterator(call->msgs);
+        fprintf(stderr, "[Group] %d messages found in call %p\n", vector_count(call->msgs), call);
         if (group->sdp_only) {
+            fprintf(stderr, "[Group] Applying SDP filter to messages\n");
             vector_iterator_set_filter(&msgs, msg_has_sdp);
         }
+        fprintf(stderr, "[Group] %d messages found in iterator\n", vector_iterator_count(&msgs));
         msgcnt += vector_iterator_count(&msgs);
     }
     return msgcnt;
