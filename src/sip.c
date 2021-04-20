@@ -347,6 +347,8 @@ sip_check_packet(packet_t *packet)
     if (!sip_get_callid((const char*) payload, callid))
         return NULL;
 
+    fprintf(stderr, "[Storage] Packet call-id: %s\n", callid);
+
     // Create a new message from this data
     if (!(msg = msg_create((const char*) payload)))
         return NULL;
@@ -362,6 +364,8 @@ sip_check_packet(packet_t *packet)
 
     // Find the call for this msg
     if (!(call = sip_find_by_callid(callid))) {
+
+        fprintf(stderr, "[Storage] Call with call-id %s not found, creating new cal\n", callid);
 
         // Check if payload matches expression
         if (!sip_check_match_expression((const char*) payload))
@@ -412,6 +416,7 @@ sip_check_packet(packet_t *packet)
 
     // Add the message to the call
     call_add_message(call, msg);
+    fprintf(stderr, "[Storage] Call with call-id %s has now %d messages\n", callid, call_msg_count(call) );
 
     // check if message is a retransmission
     call_msg_retrans_check(msg);
@@ -447,6 +452,7 @@ sip_check_packet(packet_t *packet)
     return msg;
 
 skip_message:
+    fprintf(stderr, "[Storage] Message has been skipped\n");
     // Deallocate message memory
     msg_destroy(msg);
     return NULL;

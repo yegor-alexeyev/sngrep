@@ -255,6 +255,8 @@ capture_offline(const char *infile, const char *outfile)
 void
 parse_packet(u_char *info, const struct pcap_pkthdr *header, const u_char *packet)
 {
+    fprintf(stderr, "\n----------------------------------------------------\n");
+    fprintf(stderr, "[Capture] New packet received at parse_packet [%d bytes]\n", header->caplen);
     // Capture info
     capture_info_t *capinfo = (capture_info_t *) info;
     // UDP header data
@@ -298,6 +300,8 @@ parse_packet(u_char *info, const struct pcap_pkthdr *header, const u_char *packe
     // Check if we have a complete IP packet
     if (!(pkt = capture_packet_reasm_ip(capinfo, header, data, &size_payload, &size_capture)))
         return;
+
+    fprintf(stderr, "[Capture] Packet proto: %d\n", pkt->proto);
 
     // Only interested in UDP packets
     if (pkt->proto == IPPROTO_UDP) {
@@ -348,12 +352,15 @@ parse_packet(u_char *info, const struct pcap_pkthdr *header, const u_char *packe
         if (!(pkt = capture_packet_reasm_tcp(capinfo, pkt, tcp, payload, size_payload)))
             return;
 
+        fprintf(stderr, "[Capture] Packet reassembled size: %d\n", size_payload);
+
 #if defined(WITH_GNUTLS) || defined(WITH_OPENSSL)
         // Check if packet is TLS
         if (capture_cfg.keyfile) {
             tls_process_segment(pkt, tcp);
         }
 #endif
+
 
         // Check if packet is WS or WSS
         capture_ws_check_packet(pkt);
@@ -362,6 +369,8 @@ parse_packet(u_char *info, const struct pcap_pkthdr *header, const u_char *packe
         packet_destroy(pkt);
         return;
     }
+
+    fprintf(stderr, "[Capture] Packet payload [%d bytes]: \n%.*s\n", size_payload, size_payload - 1, payload);
 
     // Avoid parsing from multiples sources.
     // Avoid parsing while screen in being redrawn
@@ -798,6 +807,8 @@ capture_packet_parse(packet_t *packet)
 {
     // Media structure for RTP packets
     rtp_stream_t *stream;
+
+    fprintf(stderr, "[Capture] Packet payload parse: %d bytes\n", packet_payloadlen(packet));
 
     // We're only interested in packets with payload
     if (packet_payloadlen(packet)) {
