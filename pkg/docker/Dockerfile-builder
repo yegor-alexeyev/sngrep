@@ -1,0 +1,19 @@
+ARG base_image="fedora"
+ARG image_tag="35"
+
+FROM ${base_image}:${image_tag} AS builder
+ARG base_image
+ARG image_tag
+ARG rhel_username
+ARG rhel_password
+
+COPY *.sh /
+RUN if [ "${base_image}" == "alpine" ]; then \
+      apk add bash grep; \
+    fi; \
+    /bootstrap-builder.sh; \
+    rm -f /bootstrap-builder.sh
+
+FROM builder
+USER builder
+ENTRYPOINT ["/entrypoint.sh"]
