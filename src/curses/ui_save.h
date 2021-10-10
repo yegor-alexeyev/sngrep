@@ -44,8 +44,7 @@
  * order this fields are stored in panel info structure.
  */
 enum save_field_list {
-    FLD_SAVE_PATH = 0,
-    FLD_SAVE_FILE,
+    FLD_SAVE_FILE = 0,
     FLD_SAVE_ALL,
     FLD_SAVE_SELECTED,
     FLD_SAVE_DISPLAYED,

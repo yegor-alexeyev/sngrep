@@ -145,7 +145,6 @@ save_create(ui_t *ui)
 
     // Set screen labels
     mvwprintw(ui->win, 1, 27, "Download capture");
-    mvwprintw(ui->win, 3, 3, "Path:");
     mvwprintw(ui->win, 4, 3, "Filename:");
     wattron(ui->win, COLOR_PAIR(CP_BLUE_ON_DEF));
     mvwprintw(ui->win, 6, 4, " Dialogs ");
@@ -278,7 +277,7 @@ save_handle_key(ui_t *ui, int key)
         // Check if we handle this action
         switch (action) {
             case ACTION_PRINTABLE:
-                if (field_idx == FLD_SAVE_PATH || field_idx == FLD_SAVE_FILE) {
+                if (field_idx == FLD_SAVE_FILE) {
                     form_driver(info->form, key);
                     break;
                 }
