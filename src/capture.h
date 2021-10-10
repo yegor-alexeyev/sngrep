@@ -469,6 +469,9 @@ datalink_size(int datalink);
 pcap_dumper_t *
 dump_open(const char *dumpfile);
 
+pcap_dumper_t *
+dump_fopen(FILE *dump_stream);
+
 /**
  * @brief Store a packet in dump file
  *

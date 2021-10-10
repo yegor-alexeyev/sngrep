@@ -956,7 +956,7 @@ call_list_help(ui_t *ui)
     mvwprintw(help_win, 11, 2, "Enter       Show selected calls message flow");
     mvwprintw(help_win, 12, 2, "Space       Select call");
     mvwprintw(help_win, 13, 2, "F1/h        Show this screen");
-    mvwprintw(help_win, 14, 2, "F2/S        Save captured packages to a file");
+    mvwprintw(help_win, 14, 2, "F2/S        Transfer captured packages via ZMODEM");
     mvwprintw(help_win, 15, 2, "F3//        Display filtering (match string case insensitive)");
     mvwprintw(help_win, 16, 2, "F4/X        Show selected call-flow (Extended) if available");
     mvwprintw(help_win, 17, 2, "F5/Ctrl-L   Clear call list (can not be undone!)");

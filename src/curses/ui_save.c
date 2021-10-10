@@ -70,7 +70,6 @@ save_create(ui_t *ui)
 
     // Initialize the fields    int total, displayed;
 
-    info->fields[FLD_SAVE_PATH] = new_field(1, 52, 3, 13, 0, 0);
     info->fields[FLD_SAVE_FILE] = new_field(1, 47, 4, 13, 0, 0);
     info->fields[FLD_SAVE_ALL] = new_field(1, 1, 7, 4, 0, 0);
     info->fields[FLD_SAVE_SELECTED] = new_field(1, 1, 8, 4, 0, 0);
@@ -84,8 +83,6 @@ save_create(ui_t *ui)
     info->fields[FLD_SAVE_COUNT] = NULL;
 
     // Set fields options
-    field_opts_off(info->fields[FLD_SAVE_PATH], O_STATIC);
-    field_opts_off(info->fields[FLD_SAVE_PATH], O_AUTOSKIP);
     field_opts_off(info->fields[FLD_SAVE_FILE], O_STATIC);
     field_opts_off(info->fields[FLD_SAVE_FILE], O_AUTOSKIP);
     field_opts_off(info->fields[FLD_SAVE_ALL], O_AUTOSKIP);
@@ -94,11 +91,11 @@ save_create(ui_t *ui)
     field_opts_off(info->fields[FLD_SAVE_MESSAGE], O_VISIBLE);
 
     // Limit max save path and file length
-    set_max_field(info->fields[FLD_SAVE_PATH], MAX_SETTING_LEN);
+    /* set_max_field(info->fields[FLD_SAVE_PATH], MAX_SETTING_LEN); */
     set_max_field(info->fields[FLD_SAVE_FILE], MAX_SETTING_LEN);
 
     // Change background of input fields
-    set_field_back(info->fields[FLD_SAVE_PATH], A_UNDERLINE);
+    /* set_field_back(info->fields[FLD_SAVE_PATH], A_UNDERLINE); */
     set_field_back(info->fields[FLD_SAVE_FILE], A_UNDERLINE);
 
     // Disable Save RTP if RTP packets are not being captured
@@ -111,10 +108,6 @@ save_create(ui_t *ui)
     post_form(info->form);
     form_opts_off(info->form, O_BS_OVERLOAD);
 
-    // Set Default field values
-    sprintf(savepath, "%s", setting_get_value(SETTING_SAVEPATH));
-
-    set_field_buffer(info->fields[FLD_SAVE_PATH], 0, savepath);
     set_field_buffer(info->fields[FLD_SAVE_SAVE], 0, "[  Save  ]");
     set_field_buffer(info->fields[FLD_SAVE_CANCEL], 0, "[ Cancel ]");
 
@@ -151,7 +144,7 @@ save_create(ui_t *ui)
     wattroff(ui->win, COLOR_PAIR(CP_BLUE_ON_DEF));
 
     // Set screen labels
-    mvwprintw(ui->win, 1, 27, "Save capture");
+    mvwprintw(ui->win, 1, 27, "Download capture");
     mvwprintw(ui->win, 3, 3, "Path:");
     mvwprintw(ui->win, 4, 3, "Filename:");
     wattron(ui->win, COLOR_PAIR(CP_BLUE_ON_DEF));
@@ -408,13 +401,14 @@ save_set_msg(ui_t *ui, sip_msg_t *msg)
 int
 save_to_file(ui_t *ui)
 {
-    char savepath[MAX_SETTING_LEN];
+    /* char savepath[MAX_SETTING_LEN]; */
     char savefile[MAX_SETTING_LEN];
-    char fullfile[MAX_SETTING_LEN*2];
+    /* char fullfile[MAX_SETTING_LEN*2]; */
     sip_call_t *call = NULL;
     sip_msg_t *msg = NULL;
     pcap_dumper_t *pd = NULL;
-    FILE *f = NULL;
+    /* FILE *f = NULL; */
+    FILE *zs_stream = NULL;
     int cur = 0, total = 0;
     WINDOW *progress;
     vector_iter_t calls, msgs, rtps, packets;
@@ -423,13 +417,6 @@ save_to_file(ui_t *ui)
 
     // Get panel information
     save_info_t *info = save_info(ui);
-
-    // Get current path field value.
-    memset(savepath, 0, sizeof(savepath));
-    strcpy(savepath, field_buffer(info->fields[FLD_SAVE_PATH], 0));
-    strtrim(savepath);
-    if (strlen(savepath))
-        strcat(savepath, "/");
 
     // Get current file field value.
     memset(savefile, 0, sizeof(savefile));
@@ -449,32 +436,28 @@ save_to_file(ui_t *ui)
             strcat(savefile, ".txt");
     }
 
-    // Absolute filename
-    sprintf(fullfile, "%s%s", savepath, savefile);
-
-    if (access(fullfile, R_OK) == 0) {
-        if (dialog_confirm("Overwrite confirmation", "Selected file already exits.\n Do you want to overwrite it?", "Yes,No") != 0)
-            return 1;
-    }
-
     // Don't allow to save no packets!
     if (info->savemode == SAVE_SELECTED && call_group_msg_count(info->group) == 0) {
         dialog_run("Unable to save: No selected dialogs.");
         return 1;
     }
 
+    if (setenv("ONAME", savefile, 1) != 0) {
+        dialog_run("setenv ONAME failed.");
+        return 1;
+    }
+    if (!(zs_stream = popen("sz -", "w"))) {
+        dialog_run("Error: %s", strerror(errno));
+        return 1;
+    }
+    unsetenv("ONAME");
+
     if (info->saveformat == SAVE_PCAP || info->saveformat == SAVE_PCAP_RTP) {
         // Open dump file
-        pd = dump_open(fullfile);
-        if (access(fullfile, W_OK) != 0) {
+        pd = dump_fopen(zs_stream);
+        if (ferror(zs_stream) != 0) {
             dialog_run("%s", capture_last_error());
             return 1;
-        }
-    } else {
-        // Open a text file
-        if (!(f = fopen(fullfile, "w"))) {
-            dialog_run("Error: %s", strerror(errno));
-            return 0;
         }
     }
 
@@ -500,7 +483,7 @@ save_to_file(ui_t *ui)
     if (info->savemode == SAVE_MESSAGE) {
         if (info->saveformat == SAVE_TXT) {
             // Save selected message to file
-            save_msg_txt(f, info->msg);
+            save_msg_txt(zs_stream, info->msg);
         } else {
             // Save selected message packet to pcap
             dump_packet(pd, info->msg->packet);
@@ -511,7 +494,7 @@ save_to_file(ui_t *ui)
             msgs = vector_iterator(call->msgs);
             // Save SIP message content
             while ((msg = vector_iterator_next(&msgs))) {
-                save_msg_txt(f, msg);
+                save_msg_txt(zs_stream, msg);
             }
         }
     } else {
@@ -560,12 +543,7 @@ save_to_file(ui_t *ui)
         dialog_progress_destroy(progress);
     }
 
-    // Close saved file
-    if (info->saveformat == SAVE_PCAP || info->saveformat == SAVE_PCAP_RTP) {
-        dump_close(pd);
-    } else {
-        fclose(f);
-    }
+    pclose(zs_stream); //should be sufficient, pcap_dump_close just calls fclose(f), and we need pclose here and not fclose
 
     // Show success popup
     if (info->savemode == SAVE_MESSAGE) {

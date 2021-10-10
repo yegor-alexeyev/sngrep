@@ -1188,6 +1188,18 @@ dump_open(const char *dumpfile)
     return NULL;
 }
 
+pcap_dumper_t *
+dump_fopen(FILE *dump_stream)
+{
+    capture_info_t *capinfo;
+
+    if (vector_count(capture_cfg.sources) == 1) {
+        capinfo = vector_first(capture_cfg.sources);
+        return pcap_dump_fopen(capinfo->handle, dump_stream);
+    }
+    return NULL;
+}
+
 void
 dump_packet(pcap_dumper_t *pd, const packet_t *packet)
 {
