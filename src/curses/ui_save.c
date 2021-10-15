@@ -409,7 +409,7 @@ save_to_file(ui_t *ui)
     /* FILE *f = NULL; */
     FILE *zs_stream = NULL;
     int cur = 0, total = 0;
-    /* WINDOW *progress; */
+    WINDOW *progress;
     vector_iter_t calls, msgs, rtps, packets;
     packet_t *packet;
     vector_t *sorted;
@@ -509,8 +509,8 @@ save_to_file(ui_t *ui)
         }
         vector_iterator_reset(&calls);
 
-        /* progress = dialog_progress_run("Saving packets..."); */
-        /* dialog_progress_set_value(progress, 0); */
+        progress = dialog_progress_run("Saving packets...");
+        dialog_progress_set_value(progress, 0);
 
         // Save selected packets to file
         while ((call = vector_iterator_next(&calls))) {
@@ -518,7 +518,7 @@ save_to_file(ui_t *ui)
             // Save SIP message content
             while ((msg = vector_iterator_next(&msgs))) {
                 // Update progress bar dialog
-                /* dialog_progress_set_value(progress, (++cur * 100) / total); */
+                dialog_progress_set_value(progress, (++cur * 100) / total);
                 vector_append(sorted, msg->packet);
             }
 
@@ -527,7 +527,7 @@ save_to_file(ui_t *ui)
                 rtps = vector_iterator(call->rtp_packets);
                 while ((packet = vector_iterator_next(&rtps))) {
                     // Update progress bar dialog
-                    /* dialog_progress_set_value(progress, (++cur * 100) / total); */
+                    dialog_progress_set_value(progress, (++cur * 100) / total);
                     vector_append(sorted, packet);
                 }
             }
@@ -539,7 +539,7 @@ save_to_file(ui_t *ui)
             dump_packet(pd, packet);
         }
 
-        /* dialog_progress_destroy(progress); */
+        dialog_progress_destroy(progress);
     }
 
     pclose(zs_stream); //should be sufficient, pcap_dump_close just calls fclose(f), and we need pclose here and not fclose
