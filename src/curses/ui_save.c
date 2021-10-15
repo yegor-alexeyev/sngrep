@@ -445,7 +445,7 @@ save_to_file(ui_t *ui)
         dialog_run("setenv ONAME failed.");
         return 1;
     }
-    if (!(zs_stream = popen("sz -", "w"))) {
+    if (!(zs_stream = popen("sz --quiet -", "w"))) {
         dialog_run("Error: %s", strerror(errno));
         return 1;
     }
