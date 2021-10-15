@@ -545,6 +545,11 @@ save_to_file(ui_t *ui)
     pclose(zs_stream); //should be sufficient, pcap_dump_close just calls fclose(f), and we need pclose here and not fclose
 
     // Show success popup
+    if (info->savemode == SAVE_MESSAGE) {
+      dialog_run("Successfully saved selected SIP message to %s", savefile);
+    } else {
+      dialog_run("Successfully saved %d dialogs to %s", vector_iterator_count(&calls), savefile);
+    }
 
     return 0;
 }
