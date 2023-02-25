@@ -973,6 +973,9 @@ capture_packet_parse(packet_t *packet)
     if (packet_payloadlen(packet)) {
         // Parse this header and payload
         if (sip_check_packet(packet)) {
+            /* sip_msg_t * msg =  */
+            /* send_message_to_ws(msg); */
+
             return 0;
         }
 

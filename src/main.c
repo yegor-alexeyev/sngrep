@@ -45,6 +45,9 @@
 #endif
 #include "curses/ui_manager.h"
 
+
+void server_thread();
+
 /**
  * @brief Usage function
  *
@@ -141,6 +144,7 @@ main(int argc, char* argv[])
     vector_t *infiles = vector_create(0, 1);
     vector_t *indevices = vector_create(0, 1);
     char *token;
+    pthread_t server_t;
 
     // Program options
     static struct option long_options[] = {
@@ -447,12 +451,21 @@ main(int argc, char* argv[])
             }
     }
 
+    // Start a server thread
+    if (pthread_create(&server_t, NULL, (void *) server_thread, NULL)) {
+        ncurses_deinit();
+        fprintf(stderr, "Failed to launch server thread.\n");
+        return 1;
+    }
+
     // Start a capture thread
     if (capture_launch_thread() != 0) {
         ncurses_deinit();
         fprintf(stderr, "Failed to launch capture thread.\n");
         return 1;
     }
+
+
 
     if (!no_interface) {
         // Initialize interface
@@ -500,6 +513,10 @@ main(int argc, char* argv[])
     }
     // Capture deinit
     capture_deinit();
+
+    pthread_cancel(server_t);
+    pthread_join(server_t, NULL);
+
 
     // Deinitialize interface
     ncurses_deinit();
