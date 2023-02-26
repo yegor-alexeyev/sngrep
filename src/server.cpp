@@ -14,6 +14,9 @@
 //------------------------------------------------------------------------------
 #include "server.h"
 #include "sip_msg.h"
+#include "sip_call.h"
+
+#include <set>
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
@@ -35,6 +38,24 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 //------------------------------------------------------------------------------
 
+typedef beast::websocket::stream<beast::tcp_stream> Websocket;
+typedef std::shared_ptr<Websocket> WebsocketPtr;
+
+// The io_context is required for all I/O
+net::io_context context;
+
+
+struct SipCallData
+{
+    std::string call_id;
+
+};
+typedef std::shared_ptr<SipCallData> SipCallDataPtr;
+
+std::map<WebsocketPtr, SipCallDataPtr> established_sessions;
+
+//------------------------------------------------------------------------------
+
 // Report a failure
 void
 fail(beast::error_code ec, char const* what)
@@ -42,32 +63,11 @@ fail(beast::error_code ec, char const* what)
     std::cerr << what << ": " << ec.message() << "\n";
 }
 
-// Echoes back all received WebSocket messages
-void
-do_session(
+void process_messages(
     websocket::stream<beast::tcp_stream>& ws,
     net::yield_context yield)
 {
     beast::error_code ec;
-
-    // Set suggested timeout settings for the websocket
-    ws.set_option(
-        websocket::stream_base::timeout::suggested(
-            beast::role_type::server));
-
-    // Set a decorator to change the Server of the handshake
-    ws.set_option(websocket::stream_base::decorator(
-        [](websocket::response_type& res)
-        {
-            res.set(http::field::server,
-                std::string(BOOST_BEAST_VERSION_STRING) +
-                    " websocket-server-coro");
-        }));
-
-    // Accept the websocket handshake
-    ws.async_accept(yield[ec]);
-    if(ec)
-        return fail(ec, "accept");
 
     for(;;)
     {
@@ -86,10 +86,48 @@ do_session(
 
         // Echo the message back
         ws.text(ws.got_text());
-        ws.async_write(buffer.data(), yield[ec]);
+        ws.async_write(boost::asio::buffer("Requests are not supported yet"), yield[ec]);
         if(ec)
             return fail(ec, "write");
     }
+}
+
+// Echoes back all received WebSocket messages
+void
+do_session(
+    tcp::socket& socket,
+    net::yield_context yield)
+{
+    beast::error_code ec;
+
+    WebsocketPtr ws = std::make_shared<Websocket>( std::move(socket));
+
+    // Set suggested timeout settings for the websocket
+    ws->set_option(
+        websocket::stream_base::timeout::suggested(
+            beast::role_type::server));
+
+    // Set a decorator to change the Server of the handshake
+    ws->set_option(websocket::stream_base::decorator(
+        [](websocket::response_type& res)
+        {
+            res.set(http::field::server,
+                std::string(BOOST_BEAST_VERSION_STRING) +
+                    " websocket-server-coro");
+        }));
+
+    // Accept the websocket handshake
+    ws->async_accept(yield[ec]);
+    if(ec)
+        return fail(ec, "accept");
+
+
+    established_sessions[ws] = SipCallDataPtr();
+
+    process_messages(*ws, yield);
+
+    established_sessions.erase(ws);
+
 }
 
 //------------------------------------------------------------------------------
@@ -134,10 +172,7 @@ do_listen(
             boost::asio::spawn(
                 acceptor.get_executor(),
                 std::bind(
-                    &do_session,
-                    websocket::stream<
-                        beast::tcp_stream>(std::move(socket)),
-                    std::placeholders::_1));
+                    &do_session, std::move(socket), std::placeholders::_1));
     }
 }
 
@@ -147,36 +182,53 @@ void server_thread()
     auto const address = net::ip::make_address("127.0.0.1");
     auto const port = static_cast<unsigned short>(8080);
 
-    // The io_context is required for all I/O
-    net::io_context ioc;
 
     // Spawn a listening port
-    boost::asio::spawn(ioc,
+    boost::asio::spawn(context,
         std::bind(
             &do_listen,
-            std::ref(ioc),
+            std::ref(context),
             tcp::endpoint{address, port},
             std::placeholders::_1));
 
-    // Run the I/O service on the requested number of threads
-    /*
-    std::vector<std::thread> v;
-    v.reserve(threads - 1);
-    for(auto i = threads - 1; i > 0; --i)
-        v.emplace_back(
-        [&ioc]
-        {
-            ioc.run();
-        });
-    */
-    ioc.run();
+    context.run();
 
     /* return EXIT_SUCCESS; */
 }
 
+void process_sip_data(const SipCallDataPtr& sip_call_data)
+{
+    for (auto& websocket_sip_data: established_sessions)
+    {
+        if (websocket_sip_data.second)
+        {
+            printf("dropping update\n");
+        }
+        else
+        {
+            websocket_sip_data.second = sip_call_data;
+            websocket_sip_data.first->async_write(boost::asio::buffer(sip_call_data->call_id), 
+                [&data=websocket_sip_data.second] (beast::error_code const& ec, std::size_t bytes_transferred) 
+                {
+                    data.reset();
+                }
+            );
+        }
+    }
+}
+
 void on_new_sip_message(struct sip_msg * msg)
 {
+    if (!msg->call) {
+        exit(81);
+    }
 
+    boost::asio::post(context,
+        std::bind(
+            &process_sip_data,
+            SipCallDataPtr(new SipCallData({std::string(msg->call->callid)}))
+        )
+    );
 
 }
 
