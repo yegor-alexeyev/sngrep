@@ -972,10 +972,9 @@ capture_packet_parse(packet_t *packet)
     // We're only interested in packets with payload
     if (packet_payloadlen(packet)) {
         // Parse this header and payload
-        if (sip_check_packet(packet)) {
-            /* sip_msg_t * msg =  */
-            /* send_message_to_ws(msg); */
-
+        struct sip_msg * msg = sip_check_packet(packet);
+        if (msg) {
+            on_new_sip_message(msg);
             return 0;
         }
 

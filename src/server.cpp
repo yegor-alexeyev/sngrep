@@ -12,6 +12,8 @@
 // Example: WebSocket server, coroutine
 //
 //------------------------------------------------------------------------------
+#include "server.h"
+#include "sip_msg.h"
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
@@ -139,7 +141,8 @@ do_listen(
     }
 }
 
-extern "C" void server_thread()
+
+void server_thread()
 {
     auto const address = net::ip::make_address("127.0.0.1");
     auto const port = static_cast<unsigned short>(8080);
@@ -170,3 +173,10 @@ extern "C" void server_thread()
 
     /* return EXIT_SUCCESS; */
 }
+
+void on_new_sip_message(struct sip_msg * msg)
+{
+
+
+}
+

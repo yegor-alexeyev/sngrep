@@ -45,8 +45,8 @@
 #endif
 #include "curses/ui_manager.h"
 
+#include "server.h"
 
-void server_thread();
 
 /**
  * @brief Usage function
