@@ -18,6 +18,8 @@
 
 #include <set>
 
+#include <boost/asio/experimental/concurrent_channel.hpp>
+
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/asio/spawn.hpp>
@@ -41,9 +43,14 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 typedef beast::websocket::stream<beast::tcp_stream> Websocket;
 typedef std::shared_ptr<Websocket> WebsocketPtr;
 
+    
+
 // The io_context is required for all I/O
 net::io_context context;
 
+typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_code, std::string)> MessageChannel;
+
+MessageChannel sngrep_channel(context, 0);
 
 struct SipCallData
 {
@@ -132,6 +139,35 @@ do_session(
 
 //------------------------------------------------------------------------------
 
+void
+do_multiplex(net::yield_context yield)
+{
+
+    std::string out;
+    boost::system::error_code ec;
+
+    while (true)
+    {
+        std::string what = sngrep_channel.async_receive( yield[ec]);
+        for ( auto socket_buffer: established_sessions)
+        {
+            if (!socket_buffer.second) {
+                socket_buffer.second = SipCallDataPtr( new SipCallData({what}));
+                socket_buffer.first->async_write(boost::asio::buffer(socket_buffer.second->call_id),
+                    [&data=socket_buffer.second] (beast::error_code const& ec, std::size_t bytes_transferred) 
+                    {
+                        data.reset();
+                    }
+                );
+            }
+            else
+            {
+                printf("dropping distribution\n");
+            }
+        }
+    }
+}
+
 // Accepts incoming connections and launches the sessions
 void
 do_listen(
@@ -191,6 +227,11 @@ void server_thread()
             tcp::endpoint{address, port},
             std::placeholders::_1));
 
+    //spawn a multiplexer
+    boost::asio::spawn(context,
+        std::bind(
+            &do_multiplex, std::placeholders::_1));
+
     context.run();
 
     /* return EXIT_SUCCESS; */
@@ -223,12 +264,13 @@ void on_new_sip_message(struct sip_msg * msg)
         exit(81);
     }
 
-    boost::asio::post(context,
-        std::bind(
-            &process_sip_data,
-            SipCallDataPtr(new SipCallData({std::string(msg->call->callid)}))
-        )
-    );
+    /* boost::asio::post(context, */
+    /*     std::bind( */
+    /*         &process_sip_data, */
+    /*         SipCallDataPtr(new SipCallData({std::string(msg->call->callid)})) */
+    /*     ) */
+    /* ); */
+    sngrep_channel.try_send(boost::asio::error::eof, std::string(msg->call->callid));
 
 }
 
