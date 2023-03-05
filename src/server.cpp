@@ -20,9 +20,17 @@
 
 #include <boost/asio/experimental/concurrent_channel.hpp>
 
+#include <boost/algorithm/string.hpp>
+
+
+#include <boost/process/v2/process.hpp>
+#include <boost/process/v2/popen.hpp>
+
+
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/asio/spawn.hpp>
+#include <boost/asio/read_until.hpp>
 #include <algorithm>
 #include <cstdlib>
 #include <functional>
@@ -212,12 +220,49 @@ do_listen(
     }
 }
 
+template <typename T>
+std::string async_read_line(T& proc, std::string& buffer, net::yield_context yield)
+{
+    boost::system::error_code ec;
+    const size_t n_read = boost::asio::async_read_until(proc, boost::asio::dynamic_buffer(buffer), '\n', yield[ec]);
+
+    if (ec || n_read == 0)
+    {
+        exit(100);
+    }
+
+    const std::string line = buffer.substr(0, n_read - 1);
+    buffer.erase(0, n_read);
+    return line;
+}
+
+void
+do_active_call_processor( net::io_context& ioc, net::yield_context yield)
+{
+    boost::system::error_code ec;
+    boost::process::v2::popen proc(ioc, "get_active_call.expect", {});
+
+    std::string buf;
+    while (true)
+    {
+        const std::string result = async_read_line(proc, buf, yield);
+
+        std::vector<std::string> fields;
+        boost::split(fields,result, boost::algorithm::is_any_of(";"));
+
+        printf("what %d\n", fields.size());
+    }
+}
 
 void server_thread()
 {
     auto const address = net::ip::make_address("127.0.0.1");
     auto const port = static_cast<unsigned short>(8080);
 
+    // Spawns an active call script processor
+    boost::asio::spawn(context,
+        std::bind( &do_active_call_processor, std::ref(context), std::placeholders::_1)
+    );
 
     // Spawn a listening port
     boost::asio::spawn(context,
@@ -274,3 +319,6 @@ void on_new_sip_message(struct sip_msg * msg)
 
 }
 
+void on_new_active_call_info(const std::map<std::string, std::string> call_info)
+{
+}
