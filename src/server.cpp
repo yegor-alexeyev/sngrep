@@ -26,6 +26,10 @@
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/popen.hpp>
 
+#include  <functional>
+
+#include <boost/bimap.hpp>
+#include <boost/bimap/multiset_of.hpp>
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
@@ -56,18 +60,47 @@ typedef std::shared_ptr<Websocket> WebsocketPtr;
 // The io_context is required for all I/O
 net::io_context context;
 
-typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_code, std::string)> MessageChannel;
+struct Leg
+{
+    explicit Leg()
+    {
+        /*
+            Should not happen
+        */
+        exit(140);
+    }
+
+    explicit Leg(struct sip_call * call)
+    {
+        call_id = std::string(call->callid);
+        state = (call_state)call->state;
+    }
+
+    std::string call_id;
+    call_state state;
+};
+
+typedef std::reference_wrapper<Leg> LegRef;
+
+
+
+typedef boost::bimap<boost::bimaps::set_of<std::string>, boost::bimaps::multiset_of<std::string> > EgressIngressMap;
+
+typedef std::map<std::string, Leg> Legs;
+
+EgressIngressMap egress_ingress_map;
+Legs legs;
+
+
+typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_code, Leg)> MessageChannel;
 
 MessageChannel sngrep_channel(context, 0);
 
-struct SipCallData
-{
-    std::string call_id;
+typedef Leg SipCallData;
 
-};
 typedef std::shared_ptr<SipCallData> SipCallDataPtr;
 
-std::map<WebsocketPtr, SipCallDataPtr> established_sessions;
+std::set<WebsocketPtr> established_sessions;
 
 //------------------------------------------------------------------------------
 
@@ -137,7 +170,7 @@ do_session(
         return fail(ec, "accept");
 
 
-    established_sessions[ws] = SipCallDataPtr();
+    established_sessions.insert(ws);
 
     process_messages(*ws, yield);
 
@@ -156,22 +189,10 @@ do_multiplex(net::yield_context yield)
 
     while (true)
     {
-        std::string what = sngrep_channel.async_receive( yield[ec]);
-        for ( auto socket_buffer: established_sessions)
+        Leg what = sngrep_channel.async_receive( yield[ec]);
+        for ( auto socket: established_sessions)
         {
-            if (!socket_buffer.second) {
-                socket_buffer.second = SipCallDataPtr( new SipCallData({what}));
-                socket_buffer.first->async_write(boost::asio::buffer(socket_buffer.second->call_id),
-                    [&data=socket_buffer.second] (beast::error_code const& ec, std::size_t bytes_transferred) 
-                    {
-                        data.reset();
-                    }
-                );
-            }
-            else
-            {
-                printf("dropping distribution\n");
-            }
+            socket->write(boost::asio::buffer(what.call_id /*TODO*/), ec);
         }
     }
 }
@@ -213,10 +234,16 @@ do_listen(
         if(ec)
             fail(ec, "accept");
         else
+        {
+            socket.non_blocking(true);
+            boost::asio::socket_base::send_buffer_size option(256000);
+            socket.set_option(option);
+
             boost::asio::spawn(
                 acceptor.get_executor(),
                 std::bind(
                     &do_session, std::move(socket), std::placeholders::_1));
+        }
     }
 }
 
@@ -282,31 +309,34 @@ void server_thread()
     /* return EXIT_SUCCESS; */
 }
 
-void process_sip_data(const SipCallDataPtr& sip_call_data)
-{
-    for (auto& websocket_sip_data: established_sessions)
-    {
-        if (websocket_sip_data.second)
-        {
-            printf("dropping update\n");
-        }
-        else
-        {
-            websocket_sip_data.second = sip_call_data;
-            websocket_sip_data.first->async_write(boost::asio::buffer(sip_call_data->call_id), 
-                [&data=websocket_sip_data.second] (beast::error_code const& ec, std::size_t bytes_transferred) 
-                {
-                    data.reset();
-                }
-            );
-        }
-    }
-}
+/* void process_sip_data(const SipCallDataPtr& sip_call_data) */
+/* { */
+/*     for (auto& websocket_sip_data: established_sessions) */
+/*     { */
+/*         if (websocket_sip_data.second) */
+/*         { */
+/*             printf("dropping update\n"); */
+/*         } */
+/*         else */
+/*         { */
+/*             websocket_sip_data.second = sip_call_data; */
+/*             websocket_sip_data.first->async_write(boost::asio::buffer(sip_call_data->call_id), */ 
+/*                 [&data=websocket_sip_data.second] (beast::error_code const& ec, std::size_t bytes_transferred) */ 
+/*                 { */
+/*                     data.reset(); */
+/*                 } */
+/*             ); */
+/*         } */
+/*     } */
+/* } */
 
 void on_new_sip_message(struct sip_msg * msg)
 {
     if (!msg->call) {
         exit(81);
+    }
+    if (!msg->call->callid) {
+        exit(82);
     }
 
     /* boost::asio::post(context, */
@@ -315,8 +345,14 @@ void on_new_sip_message(struct sip_msg * msg)
     /*         SipCallDataPtr(new SipCallData({std::string(msg->call->callid)})) */
     /*     ) */
     /* ); */
-    sngrep_channel.try_send(boost::asio::error::eof, std::string(msg->call->callid));
 
+    Leg leg(msg->call);
+
+    /* std::string call_id( msg->call->callid ); */
+
+    /* legs.try_emplace( call_id, msg->call); */
+
+    sngrep_channel.try_send(boost::asio::error::eof, leg);
 }
 
 void on_new_active_call_info(const std::map<std::string, std::string> call_info)
