@@ -18,10 +18,13 @@
 
 #include <set>
 
+#include <boost/range/combine.hpp>
+
 #include <boost/asio/experimental/concurrent_channel.hpp>
 
 #include <boost/algorithm/string.hpp>
 
+#include <boost/json/serialize.hpp>
 
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/popen.hpp>
@@ -43,6 +46,9 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <fstream>
+
+
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -55,7 +61,33 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 typedef beast::websocket::stream<beast::tcp_stream> Websocket;
 typedef std::shared_ptr<Websocket> WebsocketPtr;
 
-    
+std::vector<std::string> read_file_as_lines(const std::string& filename)
+{
+    std::ifstream in(filename);
+    std::string str;
+    std::vector<std::string> result;
+
+    while (std::getline(in, str))
+    {
+        if(str.size() > 0 && str.front() != '#')
+        {
+            result.push_back(str);
+        }
+    }
+
+    return result;
+}
+
+std::vector<std::string> init_class4_fields_list(const std::string& filename)
+{
+    std::vector<std::string> result = read_file_as_lines(filename);
+    result.insert(result.begin(), "UUID_special");
+    return result;
+}
+
+std::vector<std::string> class4_fields = init_class4_fields_list("etc/class4_fields");
+std::vector<std::string> ingress_class4_fields = read_file_as_lines("etc/ingress_class4_fields");
+std::vector<std::string> egress_class4_fields = read_file_as_lines("etc/egress_class4_fields");
 
 // The io_context is required for all I/O
 net::io_context context;
@@ -179,6 +211,22 @@ do_session(
 }
 
 //------------------------------------------------------------------------------
+std::string call_state_to_string(call_state state)
+{
+#define CALL_STATE_CASE_STATEMENT(NAME) case SIP_CALLSTATE_ ## NAME : return #NAME
+
+    switch (state)
+    {
+        CALL_STATE_CASE_STATEMENT(CALLSETUP);
+        CALL_STATE_CASE_STATEMENT(INCALL);
+        CALL_STATE_CASE_STATEMENT(CANCELLED);
+        CALL_STATE_CASE_STATEMENT(REJECTED);
+        CALL_STATE_CASE_STATEMENT(DIVERTED);
+        CALL_STATE_CASE_STATEMENT(BUSY);
+        CALL_STATE_CASE_STATEMENT(COMPLETED);
+        default: exit(94);
+    }
+}
 
 void
 do_multiplex(net::yield_context yield)
@@ -190,9 +238,15 @@ do_multiplex(net::yield_context yield)
     while (true)
     {
         Leg what = sngrep_channel.async_receive( yield[ec]);
+
+        boost::json::object state_message = {
+            {"call_id", what.call_id},
+            {"status", call_state_to_string(what.state)},
+        };
+
         for ( auto socket: established_sessions)
         {
-            socket->write(boost::asio::buffer(what.call_id /*TODO*/), ec);
+            socket->write(boost::asio::buffer(boost::json::serialize(state_message)), ec);
         }
     }
 }
@@ -274,10 +328,24 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
     {
         const std::string result = async_read_line(proc, buf, yield);
 
-        std::vector<std::string> fields;
-        boost::split(fields,result, boost::algorithm::is_any_of(";"));
+        std::vector<std::string> values;
+        boost::split(values,result, boost::algorithm::is_any_of(";"));
 
-        printf("what %d\n", fields.size());
+        std::map<std::string, std::string> field_value_map;
+
+        if (values.size() != class4_fields.size())
+        {
+            exit(13);
+        }
+
+        for (size_t i = 0; i < class4_fields.size(); i++)
+        {
+            field_value_map[class4_fields[i]] = values[i];
+        }
+
+        egress_ingress_map.insert(EgressIngressMap::value_type(
+            field_value_map["egress_callid"], field_value_map["egress_callid"]
+        ));
     }
 }
 
