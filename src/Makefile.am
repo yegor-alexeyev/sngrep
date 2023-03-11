@@ -24,8 +24,10 @@ if WITH_ZLIB
 sngrep_CFLAGS+=$(ZLIB_CFLAGS)
 sngrep_LDADD+=$(ZLIB_LIBS)
 endif
+sngrep_CXXFLAGS=-std=c++17
 sngrep_LDADD+=-lboost_coroutine
 sngrep_LDADD+=-lboost_json
+sngrep_LDADD+=-lboost_context
 
 sngrep_SOURCES+=address.c packet.c sip.c sip_call.c sip_msg.c sip_attr.c main.c
 sngrep_SOURCES+=option.c group.c filter.c keybinding.c media.c setting.c rtp.c
