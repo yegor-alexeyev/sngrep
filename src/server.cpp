@@ -16,6 +16,8 @@
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/popen.hpp>
 
+#include <boost/stacktrace.hpp>
+
 #include  <functional>
 
 #include <boost/bimap.hpp>
@@ -47,6 +49,8 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 typedef beast::websocket::stream<beast::tcp_stream> Websocket;
 typedef std::shared_ptr<Websocket> WebsocketPtr;
+
+
 
 std::vector<std::string> read_file_as_lines(const std::string& filename)
 {
@@ -419,8 +423,16 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
     }
 }
 
+void terminate_handler() {
+    std::cout << boost::stacktrace::stacktrace();
+
+    exit(2);
+}   
+
 void server_thread()
 {
+    std::set_terminate( terminate_handler );
+
     auto const address = net::ip::make_address("127.0.0.1");
     auto const port = static_cast<unsigned short>(8080);
 
