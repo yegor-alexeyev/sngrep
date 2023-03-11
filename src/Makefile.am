@@ -25,9 +25,11 @@ sngrep_CFLAGS+=$(ZLIB_CFLAGS)
 sngrep_LDADD+=$(ZLIB_LIBS)
 endif
 sngrep_CXXFLAGS=-std=c++17
-sngrep_LDADD+=-llibboost_coroutine.a
-sngrep_LDADD+=-llibboost_json.a
-sngrep_LDADD+=-llibboost_context.a
+sngrep_CXXFLAGS+=-I/home/egor/local/include
+sngrep_LDFLAGS=-L/home/egor/local/lib
+sngrep_LDADD+=-l:libboost_coroutine.a
+sngrep_LDADD+=-l:libboost_json.a
+sngrep_LDADD+=-l:libboost_context.a
 
 sngrep_SOURCES+=address.c packet.c sip.c sip_call.c sip_msg.c sip_attr.c main.c
 sngrep_SOURCES+=option.c group.c filter.c keybinding.c media.c setting.c rtp.c
