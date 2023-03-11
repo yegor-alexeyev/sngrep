@@ -1,3 +1,6 @@
+#define BOOST_STACKTRACE_USE_BACKTRACE
+#include <boost/stacktrace.hpp>
+
 #include "server.h"
 #include "sip_msg.h"
 #include "sip_call.h"
