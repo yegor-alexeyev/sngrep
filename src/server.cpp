@@ -403,6 +403,9 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
             exit(13);
         }
 
+        std::string ingress_callid;
+        std::string egress_callid;
+
         for (size_t i = 0; i < class4_fields.size(); i++)
         {
             if (ingress_class4_fields.count(class4_fields[i]) > 0)
@@ -413,10 +416,18 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
             {
                 egress_fields[class4_fields[i]] = values[i];
             }
+            if (class4_fields[i] == "egress_callid")
+            {
+                egress_callid = values[i];
+            }
+            if (class4_fields[i] == "ingress_callid")
+            {
+                ingress_callid = values[i];
+            }
         }
 
-        class4_info.insert({ egress_fields.at("egress_callid"), egress_fields });
-        class4_info.insert({ egress_fields.at("ingress_callid"), ingress_fields });
+        class4_info.insert({ egress_callid, egress_fields });
+        class4_info.insert({ ingress_callid, ingress_fields });
 
 /*         return fields.at("ingress_callid"); */
         egress_ingress_map.insert(EgressIngressMap::value_type(
