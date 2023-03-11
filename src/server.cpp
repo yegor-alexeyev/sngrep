@@ -431,7 +431,7 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
 
 /*         return fields.at("ingress_callid"); */
         egress_ingress_map.insert(EgressIngressMap::value_type(
-             egress_fields.at("egress_callid") ,  ingress_fields.at("ingress_callid")
+             egress_callid ,  ingress_callid
         ));
 
     }
