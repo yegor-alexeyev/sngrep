@@ -279,7 +279,7 @@ do_multiplex(net::yield_context yield)
     {
         SipCall what = sngrep_channel.async_receive( yield[ec]);
 
-        sip_calls[what.callId()] = what;
+        sip_calls.insert({ what.callId(), what });
 
         auto maybeIngressLegId = find_ingress_leg( what.callId());
         if (maybeIngressLegId) {
@@ -408,8 +408,8 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
             }
         }
 
-        class4_info[egress_fields.at("egress_callid")] = egress_fields;
-        class4_info[egress_fields.at("ingress_callid")] = ingress_fields;
+        class4_info.insert({ egress_fields.at("egress_callid"), egress_fields });
+        class4_info.insert({ egress_fields.at("ingress_callid"), ingress_fields });
 
 /*         return fields.at("ingress_callid"); */
         egress_ingress_map.insert(EgressIngressMap::value_type(
