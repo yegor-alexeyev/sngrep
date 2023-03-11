@@ -10,6 +10,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <boost/json/value_from.hpp>
 #include <boost/json/serialize.hpp>
 
 #include <boost/process/v2/process.hpp>
@@ -83,9 +84,9 @@ std::set<std::string> egress_class4_fields = vector_to_set(read_file_as_lines("e
 // The io_context is required for all I/O
 net::io_context context;
 
-struct Leg
+struct SipCall
 {
-    explicit Leg()
+    explicit SipCall()
     {
         /*
             Should not happen
@@ -93,7 +94,7 @@ struct Leg
         exit(140);
     }
 
-    explicit Leg(struct sip_call * call)
+    explicit SipCall(struct sip_call * call)
     {
         call_id = std::string(call->callid);
         state = (call_state)call->state;
@@ -105,41 +106,35 @@ struct Leg
     }
     std::string call_id;
     call_state state;
-
-    std::map<std::string, std::string> class4Fields;
 };
 
-struct IngressLeg
+struct Leg
 {
-    std::string callId() const
-    {
-        return fields.at("ingress_callid");
-    }
-    std::map<std::string, std::string> fields;
+    SipCall sip_call;
+    std::map<std::string, std::string> class4_fields;
 };
 
-struct EgressLeg
-{
-    std::string callId() const
-    {
-        return fields.at("egress_callid");
-    }
+/* struct IngressLeg */
+/* { */
+/*     std::string callId() const */
+/*     { */
+/*         return fields.at("ingress_callid"); */
+/*     } */
+/*     std::map<std::string, std::string> fields; */
+/* }; */
 
-    std::map<std::string, std::string> fields;
-};
+/* struct EgressLeg */
+/* { */
+/*     std::string callId() const */
+/*     { */
+/*         return fields.at("egress_callid"); */
+/*     } */
 
-bool operator <(const EgressLeg& lhs, const EgressLeg& rhs)
-{
-    return lhs.callId() < rhs.callId();
-}
-
-bool operator <(const IngressLeg& lhs, const IngressLeg& rhs)
-{
-    return lhs.callId() < rhs.callId();
-}
+/*     std::map<std::string, std::string> fields; */
+/* }; */
 
 
-typedef boost::bimap<boost::bimaps::set_of<EgressLeg>, boost::bimaps::multiset_of<IngressLeg> > EgressIngressMap;
+typedef boost::bimap<boost::bimaps::set_of<std::string>, boost::bimaps::multiset_of<std::string> > EgressIngressMap;
 
 typedef std::map<std::string, Leg> Legs;
 
@@ -147,11 +142,11 @@ EgressIngressMap egress_ingress_map;
 Legs legs;
 
 
-typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_code, Leg)> MessageChannel;
+typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_code, SipCall)> MessageChannel;
 
 MessageChannel sngrep_channel(context, 0);
 
-/* typedef Leg SipCallData; */
+/* typedef SipCall SipCallData; */
 
 /* typedef std::shared_ptr<SipCallData> SipCallDataPtr; */
 
@@ -255,13 +250,14 @@ std::optional<std::string> find_ingress_leg(const std::string leg_id)
 {
     if (egress_ingress_map.right.count(leg_id) > 0)
     {
+        //leg is ingress by itself
         return leg_id;
     }
 
-    if (egress_ingress_map.count(leg_id) > 0)
+    if (egress_ingress_map.left.count(leg_id) > 0)
     {
         //update for egress leg, finding a corresponding ingress leg
-        return egress_ingress_map.find(leg_id)->second;
+        return egress_ingress_map.left.find(leg_id)->second;
     }
 
     return std::nullopt;
@@ -276,12 +272,9 @@ do_multiplex(net::yield_context yield)
 
     while (true)
     {
-        Leg what = sngrep_channel.async_receive( yield[ec]);
+        SipCall what = sngrep_channel.async_receive( yield[ec]);
 
-        legs[what.callId()] = what;
-
-typedef boost::bimap<boost::bimaps::set_of<EgressLeg>, boost::bimaps::multiset_of<IngressLeg> > EgressIngressMap;
-std::string egr
+        legs[what.callId()].sip_call = what; //TODO losing class4
 
         auto maybeIngressLegId = find_ingress_leg( what.callId());
         if (maybeIngressLegId) {
@@ -289,7 +282,8 @@ std::string egr
             boost::json::object state_message = {
                 {"call_id", what.call_id},
                 {"status", call_state_to_string(what.state)},
-                /* add fields */
+                {"ingress", boost::json::value_from( legs[*maybeIngressLegId].class4_fields ) },
+                {"other", boost::json::value_from( legs[what.callId()].class4_fields ) }
             };
 
             for ( auto socket: established_sessions)
@@ -409,8 +403,12 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
             }
         }
 
+        legs[egress_fields.at("egress_callid")].class4_fields = egress_fields;
+        legs[egress_fields.at("ingress_callid")].class4_fields = ingress_fields;
+
+/*         return fields.at("ingress_callid"); */
         egress_ingress_map.insert(EgressIngressMap::value_type(
-            { egress_fields }, { ingress_fields }
+             egress_fields.at("egress_callid") ,  ingress_fields.at("ingress_callid")
         ));
 
     }
@@ -481,7 +479,7 @@ void on_new_sip_message(struct sip_msg * msg)
     /*     ) */
     /* ); */
 
-    Leg leg(msg->call);
+    SipCall leg(msg->call);
 
     /* std::string call_id( msg->call->callid ); */
 
