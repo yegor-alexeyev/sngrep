@@ -1,17 +1,3 @@
-//
-// Copyright (c) 2016-2019 Vinnie Falco (vinnie dot falco at gmail dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-// Official repository: https://github.com/boostorg/beast
-//
-
-//------------------------------------------------------------------------------
-//
-// Example: WebSocket server, coroutine
-//
-//------------------------------------------------------------------------------
 #include "server.h"
 #include "sip_msg.h"
 #include "sip_call.h"
@@ -85,9 +71,14 @@ std::vector<std::string> init_class4_fields_list(const std::string& filename)
     return result;
 }
 
+std::set<std::string> vector_to_set(const std::vector<std::string> v)
+{
+    return std::set<std::string>(v.begin(), v.end());
+}
+
 std::vector<std::string> class4_fields = init_class4_fields_list("etc/class4_fields");
-std::vector<std::string> ingress_class4_fields = read_file_as_lines("etc/ingress_class4_fields");
-std::vector<std::string> egress_class4_fields = read_file_as_lines("etc/egress_class4_fields");
+std::set<std::string> ingress_class4_fields = vector_to_set(read_file_as_lines("etc/ingress_class4_fields"));
+std::set<std::string> egress_class4_fields = vector_to_set(read_file_as_lines("etc/egress_class4_fields"));
 
 // The io_context is required for all I/O
 net::io_context context;
@@ -108,15 +99,47 @@ struct Leg
         state = (call_state)call->state;
     }
 
+    std::string callId() const
+    {
+        return call_id;
+    }
     std::string call_id;
     call_state state;
+
+    std::map<std::string, std::string> class4Fields;
 };
 
-typedef std::reference_wrapper<Leg> LegRef;
+struct IngressLeg
+{
+    std::string callId() const
+    {
+        return fields.at("ingress_callid");
+    }
+    std::map<std::string, std::string> fields;
+};
+
+struct EgressLeg
+{
+    std::string callId() const
+    {
+        return fields.at("egress_callid");
+    }
+
+    std::map<std::string, std::string> fields;
+};
+
+bool operator <(const EgressLeg& lhs, const EgressLeg& rhs)
+{
+    return lhs.callId() < rhs.callId();
+}
+
+bool operator <(const IngressLeg& lhs, const IngressLeg& rhs)
+{
+    return lhs.callId() < rhs.callId();
+}
 
 
-
-typedef boost::bimap<boost::bimaps::set_of<std::string>, boost::bimaps::multiset_of<std::string> > EgressIngressMap;
+typedef boost::bimap<boost::bimaps::set_of<EgressLeg>, boost::bimaps::multiset_of<IngressLeg> > EgressIngressMap;
 
 typedef std::map<std::string, Leg> Legs;
 
@@ -128,9 +151,9 @@ typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_
 
 MessageChannel sngrep_channel(context, 0);
 
-typedef Leg SipCallData;
+/* typedef Leg SipCallData; */
 
-typedef std::shared_ptr<SipCallData> SipCallDataPtr;
+/* typedef std::shared_ptr<SipCallData> SipCallDataPtr; */
 
 std::set<WebsocketPtr> established_sessions;
 
@@ -228,6 +251,22 @@ std::string call_state_to_string(call_state state)
     }
 }
 
+std::optional<std::string> find_ingress_leg(const std::string leg_id)
+{
+    if (egress_ingress_map.right.count(leg_id) > 0)
+    {
+        return leg_id;
+    }
+
+    if (egress_ingress_map.count(leg_id) > 0)
+    {
+        //update for egress leg, finding a corresponding ingress leg
+        return egress_ingress_map.find(leg_id)->second;
+    }
+
+    return std::nullopt;
+}
+
 void
 do_multiplex(net::yield_context yield)
 {
@@ -239,15 +278,33 @@ do_multiplex(net::yield_context yield)
     {
         Leg what = sngrep_channel.async_receive( yield[ec]);
 
-        boost::json::object state_message = {
-            {"call_id", what.call_id},
-            {"status", call_state_to_string(what.state)},
-        };
+        legs[what.callId()] = what;
 
-        for ( auto socket: established_sessions)
-        {
-            socket->write(boost::asio::buffer(boost::json::serialize(state_message)), ec);
+typedef boost::bimap<boost::bimaps::set_of<EgressLeg>, boost::bimaps::multiset_of<IngressLeg> > EgressIngressMap;
+std::string egr
+
+        auto maybeIngressLegId = find_ingress_leg( what.callId());
+        if (maybeIngressLegId) {
+
+            boost::json::object state_message = {
+                {"call_id", what.call_id},
+                {"status", call_state_to_string(what.state)},
+                /* add fields */
+            };
+
+            for ( auto socket: established_sessions)
+            {
+                socket->write(boost::asio::buffer(boost::json::serialize(state_message)), ec);
+            }
+
         }
+        else
+        {
+            //update for a leg which has not been classified yet. Do nothing
+        }
+
+
+
     }
 }
 
@@ -331,7 +388,9 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
         std::vector<std::string> values;
         boost::split(values,result, boost::algorithm::is_any_of(";"));
 
-        std::map<std::string, std::string> field_value_map;
+        std::map<std::string, std::string> ingress_fields;
+        std::map<std::string, std::string> egress_fields;
+
 
         if (values.size() != class4_fields.size())
         {
@@ -340,12 +399,20 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
 
         for (size_t i = 0; i < class4_fields.size(); i++)
         {
-            field_value_map[class4_fields[i]] = values[i];
+            if (ingress_class4_fields.count(class4_fields[i]) > 0)
+            {
+                ingress_fields[class4_fields[i]] = values[i];
+            }
+            if (egress_class4_fields.count(class4_fields[i]) > 0)
+            {
+                egress_fields[class4_fields[i]] = values[i];
+            }
         }
 
         egress_ingress_map.insert(EgressIngressMap::value_type(
-            field_value_map["egress_callid"], field_value_map["egress_callid"]
+            { egress_fields }, { ingress_fields }
         ));
+
     }
 }
 
