@@ -389,7 +389,13 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
     std::string buf;
     while (true)
     {
-        const std::string result = async_read_line(proc, buf, yield);
+        std::string result = async_read_line(proc, buf, yield);
+        if (result.empty()) 
+        {
+            exit(73);
+        }
+
+        result.pop_back(); //remove question mark from the end of line
 
         std::vector<std::string> values;
         boost::split(values,result, boost::algorithm::is_any_of(";"));
