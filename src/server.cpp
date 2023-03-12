@@ -579,6 +579,8 @@ void on_new_sip_message(struct sip_msg * msg)
 
     SipCall sip_call(msg->call);
 
+    std::cout << "call state" <<msg->call->state << std::endl;
+
     /* std::string call_id( msg->call->callid ); */
 
     /* legs.try_emplace( call_id, msg->call); */
