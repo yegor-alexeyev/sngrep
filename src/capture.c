@@ -54,6 +54,8 @@
 #include "setting.h"
 #include "util.h"
 
+#include "server.h"
+
 #if __STDC_VERSION__ >= 201112L && __STDC_NO_ATOMICS__ != 1
 // modern C with atomics
 #include <stdatomic.h>

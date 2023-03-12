@@ -288,6 +288,8 @@ do_multiplex(net::yield_context yield)
 
         sip_calls.insert({ what.callId(), what });
 
+        std::cout << "callid from sngrep: " << what.callId() << "\n";
+
         auto maybeIngressLegId = find_ingress_leg( what.callId());
         if (maybeIngressLegId) {
 
@@ -300,7 +302,9 @@ do_multiplex(net::yield_context yield)
 
             for ( auto socket: established_sessions)
             {
-                socket->write(boost::asio::buffer(boost::json::serialize(state_message)), ec);
+                std::string msg = boost::json::serialize(state_message);
+                std::cout << "sent to websocket: " << msg << "\n";
+                socket->write(boost::asio::buffer(msg), ec);
             }
 
         }
@@ -432,10 +436,13 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
             }
         }
 
+        std::cout << "new class4 pair: " << ingress_callid << " " << egress_callid << "\n";
+
         class4_info.insert({ egress_callid, egress_fields });
         class4_info.insert({ ingress_callid, ingress_fields });
 
 /*         return fields.at("ingress_callid"); */
+
         egress_ingress_map.insert(EgressIngressMap::value_type(
              egress_callid ,  ingress_callid
         ));
