@@ -40,6 +40,7 @@
 #include <vector>
 #include <fstream>
 
+#include <signal.h>
 
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
@@ -90,6 +91,9 @@ std::set<std::string> egress_class4_fields = vector_to_set(read_file_as_lines("e
 
 // The io_context is required for all I/O
 net::io_context context;
+
+boost::process::v2::popen call_processor(context);
+
 
 struct SipCall
 {
@@ -337,6 +341,7 @@ do_multiplex(net::yield_context yield)
 
         std::cout << "callid from sngrep: " << what.callId() << "\n";
 
+        kill(call_processor.id(), SIGUSR1);
 
         auto maybeIngressLegId = find_ingress_leg( what.callId());
         if (maybeIngressLegId) {
@@ -425,14 +430,14 @@ void
 do_active_call_processor( net::io_context& ioc, net::yield_context yield)
 {
     boost::system::error_code ec;
-    boost::process::v2::popen proc(ioc, "get_active_call.expect", {});
+    call_processor = boost::process::v2::popen(ioc, "get_active_call.expect", {});
 
     static std::set<std::string> backlog;
 
     std::string buf;
     while (true)
     {
-        std::string result = async_read_line(proc, buf, yield);
+        std::string result = async_read_line(call_processor, buf, yield);
 
         if (result.empty()) 
         {
