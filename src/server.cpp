@@ -341,7 +341,11 @@ do_multiplex(net::yield_context yield)
 
         std::cout << "callid from sngrep: " << what.callId() << "\n";
 
-        kill(call_processor.id(), SIGUSR1);
+
+        if (what.state != 0 && class4_info.count(what.callId()) == 0)
+        {
+            kill(call_processor.id(), SIGUSR1);
+        }
 
         auto maybeIngressLegId = find_ingress_leg( what.callId());
         if (maybeIngressLegId) {
