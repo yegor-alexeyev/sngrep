@@ -339,11 +339,12 @@ do_multiplex(net::yield_context yield)
 
         sip_calls.insert_or_assign( what.callId(), what );
 
-        std::cout << "callid from sngrep: " << what.callId() << "\n";
+        std::cout << "callid from sngrep: " << what.callId() << " " << what.state << "\n";
 
 
         if (what.state != 0 && class4_info.count(what.callId()) == 0)
         {
+            std::cout << "notified processor: " << what.callId() << " " << what.state << "\n";
             kill(call_processor.id(), SIGUSR1);
         }
 
