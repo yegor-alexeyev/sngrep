@@ -344,7 +344,7 @@ do_multiplex(net::yield_context yield)
 
         if (what.state != 0 && class4_info.count(what.callId()) == 0)
         {
-            std::cout << "notified processor: " << what.callId() << " " << what.state << "\n";
+            std::cout << "notified processor: " << what.callId() << " " << what.state << " " << call_processor.id() <<"\n";
             kill(call_processor.id(), SIGUSR1);
         }
 
