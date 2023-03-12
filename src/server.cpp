@@ -437,7 +437,12 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
             }
         }
 
-        std::cout << "new class4 pair: " << ingress_callid << " " << egress_callid << "\n";
+        if (egress_ingress_map.right.count(ingress_callid) == 0) {
+            std::cout << "new class4 ingress classified: " << ingress_callid << " " << egress_callid << "\n";
+        }
+        if (egress_ingress_map.left.count(egress_callid) == 0) {
+            std::cout << "new class4 egress leg: " << ingress_callid << " " << egress_callid << "\n";
+        }
 
         class4_info.insert({ egress_callid, egress_fields });
         class4_info.insert({ ingress_callid, ingress_fields });
