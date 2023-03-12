@@ -400,6 +400,7 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
         }
 
         result.pop_back(); //remove question mark from the end of line
+        result.pop_back(); //remove question mark from the end of line
 
         std::vector<std::string> values;
         boost::split(values,result, boost::algorithm::is_any_of(";"));
