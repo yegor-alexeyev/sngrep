@@ -444,8 +444,12 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
         std::string result = async_read_line(call_processor, buf, yield);
 
 
-        if (result.empty()) 
+        if (result.size() <= 2)
         {
+            std::cout << "WWW:" << result << ":WWW";
+            std::cout << "WWW:" << result << ":WWW";
+            std::cout << "WWW:" << result << ":WWW";
+            std::cout << "WWW:" << result << ":WWW" << "\n";
             exit(73);
         }
 
@@ -522,9 +526,14 @@ void terminate_handler() {
     exit(2);
 }   
 
+void exit_handler() {
+    call_processor.interrupt();
+}   
+
 void server_thread()
 {
     std::set_terminate( terminate_handler );
+    std::atexit( exit_handler );
 
     auto const address = net::ip::make_address("127.0.0.1");
     auto const port = static_cast<unsigned short>(8080);
