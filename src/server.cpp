@@ -443,6 +443,7 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
     {
         std::string result = async_read_line(call_processor, buf, yield);
 
+
         if (result.empty()) 
         {
             exit(73);
@@ -453,6 +454,8 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
             //filter out duplicate lines
             continue;
         }
+
+        std::cout << "line: " << result << std::endl;
 
         result.pop_back(); //remove question mark from the end of line
         result.pop_back(); //remove question mark from the end of line
