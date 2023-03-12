@@ -442,6 +442,12 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
     while (true)
     {
         std::string result = async_read_line(call_processor, buf, yield);
+        if (boost::algorithm::starts_with(result, "get_active_call class4 ") ||
+            boost::algorithm::starts_with(result, "display count: "))
+        {
+            continue;
+        }
+
 
 
         if (result.size() <= 2)
