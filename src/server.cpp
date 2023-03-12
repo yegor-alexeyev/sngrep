@@ -277,13 +277,40 @@ std::optional<std::string> find_ingress_leg(const std::string leg_id)
 
 void send_updates_to_clients(const std::string ingress_leg_id)
 {
-    const SipCall& ingress_call = sip_calls.find(ingress_leg_id)->second;
+    const auto ingress_sip_call_iterator = sip_calls.find(ingress_leg_id);
+
+    const std::string egress_leg_id = egress_ingress_map.right.find(ingress_leg_id)->second ;
+    /* const std::string egress_leg_id = boost::json::value_from( egress_ingress_map.right.find(ingress_leg_id)->second ); */
+    const auto egress_sip_call_iterator = sip_calls.find(egress_leg_id);
+
+    boost::json::array egress_legs_json;
+
+    /* boost::json::object egress_leg_json; */
+
+    auto egress_leg_fields = class4_info[egress_leg_id];
+    egress_leg_fields["call_id"] = egress_leg_id;
+    if (egress_sip_call_iterator != sip_calls.end())
+    {
+        egress_leg_fields["status"] = call_state_to_string(egress_sip_call_iterator->second.state);
+    }
+    /* egress_leg_json.insert(boost::json::value_from( egress_leg_fields)); */
+
+    egress_legs_json.push_back( boost::json::value_from( egress_leg_fields ) );
+
+
+    auto ingress_leg_fields = class4_info[ingress_leg_id];
+    ingress_leg_fields["call_id"] = ingress_leg_id;
+    if (ingress_sip_call_iterator != sip_calls.end())
+    {
+        ingress_leg_fields["status"] = call_state_to_string(ingress_sip_call_iterator->second.state);
+    }
+
 
     boost::json::object state_message = {
-        {"call_id", ingress_call.call_id},
-        {"status", call_state_to_string(ingress_call.state)},
-        {"ingress", boost::json::value_from( class4_info[ingress_leg_id] ) },
-        {"other", boost::json::value_from( egress_ingress_map.right.find(ingress_leg_id)->second ) }
+        {"ingress", boost::json::value_from( ingress_leg_fields ) },
+        {"egress", egress_legs_json }
+        /* {"egress", boost::json::array( boost::json::value_from( class4_info[ingress_leg_id] ) ) }, */
+        /* {"other", boost::json::value_from( egress_ingress_map.right.find(ingress_leg_id)->second ) } */
     };
 
     for ( auto socket: established_sessions)
