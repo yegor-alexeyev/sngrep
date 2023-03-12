@@ -333,7 +333,7 @@ do_multiplex(net::yield_context yield)
     {
         SipCall what = sngrep_channel.async_receive( yield[ec]);
 
-        sip_calls.insert({ what.callId(), what });
+        sip_calls[what.callId()] = what;
 
         std::cout << "callid from sngrep: " << what.callId() << "\n";
 
@@ -491,14 +491,12 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
             std::cout << "new class4 egress leg: " << ingress_callid << " " << egress_callid << "\n";
         }
 
-        class4_info.insert({ egress_callid, egress_fields });
-        class4_info.insert({ ingress_callid, ingress_fields });
+        class4_info[egress_callid] = egress_fields;
+        class4_info[ingress_callid] = ingress_fields;
 
 /*         return fields.at("ingress_callid"); */
 
-        egress_ingress_map.insert(EgressIngressMap::value_type(
-             egress_callid ,  ingress_callid
-        ));
+        egress_ingress_map.insert(EgressIngressMap::value_type( egress_callid, ingress_callid));
 
         send_updates_to_clients(ingress_callid);
     }
@@ -579,7 +577,7 @@ void on_new_sip_message(struct sip_msg * msg)
 
     SipCall sip_call(msg->call);
 
-    std::cout << "call state" <<msg->call->state << std::endl;
+    /* std::cout << "call state" <<msg->call->state << std::endl; */
 
     /* std::string call_id( msg->call->callid ); */
 
