@@ -275,6 +275,26 @@ std::optional<std::string> find_ingress_leg(const std::string leg_id)
     return std::nullopt;
 }
 
+void send_updates_to_clients(const std::string ingress_leg_id)
+{
+    const SipCall& ingress_call = sip_calls.find(ingress_leg_id)->second;
+
+    boost::json::object state_message = {
+        {"call_id", ingress_call.call_id},
+        {"status", call_state_to_string(ingress_call.state)},
+        {"ingress", boost::json::value_from( class4_info[ingress_leg_id] ) },
+        {"other", boost::json::value_from( egress_ingress_map.right.find(ingress_leg_id)->second ) }
+    };
+
+    for ( auto socket: established_sessions)
+    {
+        beast::error_code ec;
+        std::string msg = boost::json::serialize(state_message);
+        std::cout << "sent to websocket: " << msg << "\n";
+        socket->write(boost::asio::buffer(msg), ec);
+    }
+}
+
 void
 do_multiplex(net::yield_context yield)
 {
@@ -290,22 +310,12 @@ do_multiplex(net::yield_context yield)
 
         std::cout << "callid from sngrep: " << what.callId() << "\n";
 
+
         auto maybeIngressLegId = find_ingress_leg( what.callId());
         if (maybeIngressLegId) {
 
-            boost::json::object state_message = {
-                {"call_id", what.call_id},
-                {"status", call_state_to_string(what.state)},
-                {"ingress", boost::json::value_from( class4_info[*maybeIngressLegId] ) },
-                {"other", boost::json::value_from( class4_info[what.callId()] ) }
-            };
+            send_updates_to_clients(*maybeIngressLegId);
 
-            for ( auto socket: established_sessions)
-            {
-                std::string msg = boost::json::serialize(state_message);
-                std::cout << "sent to websocket: " << msg << "\n";
-                socket->write(boost::asio::buffer(msg), ec);
-            }
 
         }
         else
@@ -390,17 +400,27 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
     boost::system::error_code ec;
     boost::process::v2::popen proc(ioc, "get_active_call.expect", {});
 
+    static std::set<std::string> backlog;
+
     std::string buf;
     while (true)
     {
         std::string result = async_read_line(proc, buf, yield);
+
         if (result.empty()) 
         {
             exit(73);
         }
 
+        if (!backlog.insert(result).second)
+        {
+            //filter out duplicate lines
+            continue;
+        }
+
         result.pop_back(); //remove question mark from the end of line
         result.pop_back(); //remove question mark from the end of line
+
 
         std::vector<std::string> values;
         boost::split(values,result, boost::algorithm::is_any_of(";"));
@@ -453,6 +473,7 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
              egress_callid ,  ingress_callid
         ));
 
+        send_updates_to_clients(ingress_callid);
     }
 }
 
