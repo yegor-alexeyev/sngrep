@@ -95,6 +95,30 @@ net::io_context context;
 boost::process::v2::popen call_processor(context);
 
 
+struct RtpStream
+{
+    explicit RtpStream(rtp_stream_t *stream)
+    {
+
+        count = stream->pktcnt;
+        type = stream->type;
+        src_ip = std::string(stream->src.ip);
+        src_port = stream->src.port;
+        
+        dest_ip = std::string(stream->dst.ip);
+        dest_port = stream->dst.port;
+    }
+
+    int count;
+    int type;
+    std::string src_ip;
+    int src_port;
+
+    std::string dest_ip;
+    int dest_port;
+    
+};
+
 struct SipCall
 {
     explicit SipCall()
@@ -109,6 +133,13 @@ struct SipCall
     {
         call_id = std::string(call->callid);
         state = (call_state)call->state;
+
+        rtp_stream_t *stream;
+        vector_iter_t streams_it = vector_iterator(call->streams);
+
+        while ( (stream = (rtp_stream_t*)vector_iterator_next(&streams_it))) {
+            streams.emplace_back( stream );
+        }
     }
 
     std::string callId() const
@@ -117,6 +148,7 @@ struct SipCall
     }
     std::string call_id;
     call_state state;
+    std::vector<RtpStream> streams;
 };
 
 /* struct Leg */
@@ -279,39 +311,59 @@ std::optional<std::string> find_ingress_leg(const std::string leg_id)
     return std::nullopt;
 }
 
+
+boost::json::value gather_leg_fields(const std::string& leg_id)
+{
+    const auto sip_call_iterator = sip_calls.find(leg_id);
+
+    boost::json::value result = boost::json::value_from(class4_info[leg_id]);
+    boost::json::object& result_object = result.as_object();
+
+    result_object["call_id"] = leg_id;
+    if (sip_call_iterator != sip_calls.end())
+    {
+        auto sip_call = sip_call_iterator->second;
+        result_object["status"] = call_state_to_string(sip_call.state);
+
+        boost::json::array streams_json;
+        for (const auto& stream: sip_call.streams)
+        {
+            std::map<std::string, std::string> fields;
+            fields["count"] = stream.count;
+            fields["type"] = stream.type;
+            fields["src_ip"] = stream.src_ip;
+            fields["src_port"] = stream.src_port;
+            fields["dest_ip"] = stream.dest_ip;
+            fields["dest_port"] = stream.dest_port;
+
+            /* streams_json.push_back( boost::json::value_from( fields ) ); */
+        }
+
+        result_object["streams"] = streams_json;
+    }
+    return result;
+
+}
+
 void send_updates_to_clients(const std::string ingress_leg_id)
 {
-    const auto ingress_sip_call_iterator = sip_calls.find(ingress_leg_id);
 
     const std::string egress_leg_id = egress_ingress_map.right.find(ingress_leg_id)->second ;
     /* const std::string egress_leg_id = boost::json::value_from( egress_ingress_map.right.find(ingress_leg_id)->second ); */
-    const auto egress_sip_call_iterator = sip_calls.find(egress_leg_id);
 
     boost::json::array egress_legs_json;
 
     /* boost::json::object egress_leg_json; */
 
-    auto egress_leg_fields = class4_info[egress_leg_id];
-    egress_leg_fields["call_id"] = egress_leg_id;
-    if (egress_sip_call_iterator != sip_calls.end())
-    {
-        egress_leg_fields["status"] = call_state_to_string(egress_sip_call_iterator->second.state);
-    }
-    /* egress_leg_json.insert(boost::json::value_from( egress_leg_fields)); */
+    /* auto egress_leg_fields = gather_leg_fields( egress_leg_id); */
+    egress_legs_json.push_back( gather_leg_fields( egress_leg_id) );
 
-    egress_legs_json.push_back( boost::json::value_from( egress_leg_fields ) );
+    /* auto ingress_leg_fields = gather_leg_fields( ingress_leg_id); */
 
-
-    auto ingress_leg_fields = class4_info[ingress_leg_id];
-    ingress_leg_fields["call_id"] = ingress_leg_id;
-    if (ingress_sip_call_iterator != sip_calls.end())
-    {
-        ingress_leg_fields["status"] = call_state_to_string(ingress_sip_call_iterator->second.state);
-    }
 
 
     boost::json::object state_message = {
-        {"ingress", boost::json::value_from( ingress_leg_fields ) },
+        {"ingress", gather_leg_fields( ingress_leg_id) },
         {"egress", egress_legs_json }
         /* {"egress", boost::json::array( boost::json::value_from( class4_info[ingress_leg_id] ) ) }, */
         /* {"other", boost::json::value_from( egress_ingress_map.right.find(ingress_leg_id)->second ) } */
