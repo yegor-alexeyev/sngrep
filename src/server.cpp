@@ -336,7 +336,7 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
             fields["dest_ip"] = stream.dest_ip;
             fields["dest_port"] = stream.dest_port;
 
-            /* streams_json.push_back( boost::json::value_from( fields ) ); */
+            streams_json.push_back( boost::json::value_from( fields ) );
         }
 
         result_object["streams"] = streams_json;
