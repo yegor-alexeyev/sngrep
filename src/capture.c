@@ -981,15 +981,15 @@ capture_packet_parse(packet_t *packet)
         }
 
         // Check if this packet belongs to a RTP stream
-        if ((stream = rtp_check_packet(packet))) {
-            // We have an RTP packet!
-            packet_set_type(packet, PACKET_RTP);
-            // Store this pacekt if capture rtp is enabled
-            if (capture_cfg.rtp_capture) {
-                call_add_rtp_packet(stream_get_call(stream), packet);
-                return 0;
-            }
-        }
+        /* if ((stream = rtp_check_packet(packet))) { */
+        /*     // We have an RTP packet! */
+        /*     packet_set_type(packet, PACKET_RTP); */
+        /*     // Store this pacekt if capture rtp is enabled */
+        /*     if (capture_cfg.rtp_capture) { */
+        /*         call_add_rtp_packet(stream_get_call(stream), packet); */
+        /*         return 0; */
+        /*     } */
+        /* } */
     }
     return 1;
 }
