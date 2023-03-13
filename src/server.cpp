@@ -330,11 +330,11 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
         {
             std::map<std::string, std::string> fields;
             fields["count"] = stream.count;
-            fields["type"] = stream.type;
+            fields["type"] = std::to_string(stream.type);
             fields["src_ip"] = stream.src_ip;
-            fields["src_port"] = stream.src_port;
+            fields["src_port"] = std::to_string(stream.src_port);
             fields["dest_ip"] = stream.dest_ip;
-            fields["dest_port"] = stream.dest_port;
+            fields["dest_port"] = std::to_string(stream.dest_port);
 
             streams_json.push_back( boost::json::value_from( fields ) );
         }
