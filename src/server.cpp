@@ -2,8 +2,18 @@
 #include <boost/stacktrace.hpp>
 
 #include "server.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "sip_msg.h"
 #include "sip_call.h"
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #include <set>
 
@@ -140,6 +150,13 @@ struct SipCall
         while ( (stream = (rtp_stream_t*)vector_iterator_next(&streams_it))) {
             streams.emplace_back( stream );
         }
+
+        sip_msg_t *first = (sip_msg_t *)vector_first(call->msgs);
+        init_time = msg_get_time(first);
+        /* ring_time = msg_get_time(call->cstart_msg); */
+        /* answer_time = msg_get_time(call->cstart_msg); */
+        /* hangup_time = msg_get_time(call->cstart_msg); */
+
     }
 
     std::string callId() const
@@ -149,6 +166,11 @@ struct SipCall
     std::string call_id;
     call_state state;
     std::vector<RtpStream> streams;
+
+    timeval init_time;
+    std::optional<timeval> ring_time;
+    std::optional<timeval> answer_time;
+    std::optional<timeval> hangup_time;
 };
 
 /* struct Leg */
@@ -324,6 +346,15 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
     {
         auto sip_call = sip_call_iterator->second;
         result_object["status"] = call_state_to_string(sip_call.state);
+
+        char timestamp_buffer[20]; //big enough for 64 bit number
+
+        snprintf(timestamp_buffer, sizeof(timestamp_buffer), "%s%06s");
+
+        std::stringstream timestamp_stream;
+        timestamp_stream << sip_call.init_time.tv_sec << std::setfill('0') << std::setw(6) << sip_call.init_time.tv_usec;
+
+        result_object["init_time"] = timestamp_stream.str();
 
         boost::json::array streams_json;
         for (const auto& stream: sip_call.streams)
@@ -647,6 +678,12 @@ void on_new_sip_message(struct sip_msg * msg)
     if (!msg->call) {
         exit(81);
     }
+
+    if (!call_is_invite(msg->call))
+    {
+        return;
+    }
+
     if (!msg->call->callid) {
         exit(82);
     }

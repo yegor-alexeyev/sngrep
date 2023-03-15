@@ -68,9 +68,6 @@ struct vector_iter {
     int (*filter) (void *item);
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * @brief Create a new vector
@@ -295,8 +292,5 @@ vector_iterator_current(vector_iter_t *it);
 void
 vector_iterator_reset(vector_iter_t *it);
 
-#ifdef __cplusplus
-} //extern "C" {
-#endif
 
 #endif /* __SNGREP_VECTOR_H_ */
