@@ -7,6 +7,7 @@
 extern "C" {
 #endif
 
+#include "sip.h"
 #include "sip_msg.h"
 #include "sip_call.h"
 
@@ -152,7 +153,28 @@ struct SipCall
         }
 
         sip_msg_t *first = (sip_msg_t *)vector_first(call->msgs);
+        if (first->reqresp != SIP_METHOD_INVITE) 
+        {
+            exit(99);
+        }
         init_time = msg_get_time(first);
+
+
+        vector_iter_t msgs_it = vector_iterator(call->msgs);
+        while (sip_msg_t* msg = (sip_msg_t*)vector_iterator_next(&msgs_it)) {
+            if (!ring_time && (msg->reqresp == 180 || msg->reqresp == 183)) {
+                ring_time = msg_get_time(msg);
+            }
+            if (!answer_time && (msg->reqresp == 200)) {
+                answer_time = msg_get_time(msg);
+            }
+            if (!hangup_time && (msg->reqresp == SIP_METHOD_BYE || msg->reqresp == SIP_METHOD_CANCEL || (msg->reqresp >= 400 && msg->reqresp < 600))) {
+                hangup_time = msg_get_time(msg);
+            }
+
+        }
+
+
         /* ring_time = msg_get_time(call->cstart_msg); */
         /* answer_time = msg_get_time(call->cstart_msg); */
         /* hangup_time = msg_get_time(call->cstart_msg); */
@@ -333,6 +355,15 @@ std::optional<std::string> find_ingress_leg(const std::string leg_id)
     return std::nullopt;
 }
 
+std::string format_timestamp(const timeval& timestamp)
+{
+    std::stringstream timestamp_stream;
+
+    // timestamp_stream << std::put_time(std::gmtime(&sip_call.init_time.tv_sec), "%c") << "." << sip_call.init_time.tv_usec;
+
+    timestamp_stream << std::put_time(std::gmtime(&timestamp.tv_sec), "%c") << "." << timestamp.tv_usec;
+    return timestamp_stream.str();
+}
 
 boost::json::value gather_leg_fields(const std::string& leg_id)
 {
@@ -347,14 +378,20 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
         auto sip_call = sip_call_iterator->second;
         result_object["status"] = call_state_to_string(sip_call.state);
 
-        char timestamp_buffer[20]; //big enough for 64 bit number
+        result_object["init_time"] = format_timestamp(sip_call.init_time);
+        if (sip_call.ring_time)
+        {
+            result_object["ring_time"] = format_timestamp(*sip_call.ring_time);
+        }
+        if (sip_call.answer_time)
+        {
+            result_object["answer_time"] = format_timestamp(*sip_call.answer_time);
+        }
+        if (sip_call.hangup_time)
+        {
+            result_object["hangup_time"] = format_timestamp(*sip_call.hangup_time);
+        }
 
-        snprintf(timestamp_buffer, sizeof(timestamp_buffer), "%s%06s");
-
-        std::stringstream timestamp_stream;
-        timestamp_stream << sip_call.init_time.tv_sec << std::setfill('0') << std::setw(6) << sip_call.init_time.tv_usec;
-
-        result_object["init_time"] = timestamp_stream.str();
 
         boost::json::array streams_json;
         for (const auto& stream: sip_call.streams)
