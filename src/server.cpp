@@ -459,12 +459,12 @@ do_multiplex(net::yield_context yield)
 
         sip_calls.insert_or_assign( what.callId(), what );
 
-        std::cout << "callid from sngrep: " << what.callId() << " " << what.state << "\n";
+        /* std::cout << "callid from sngrep: " << what.callId() << " " << what.state << "\n"; */
 
 
         if (what.state != 0 && class4_info.count(what.callId()) == 0)
         {
-            std::cout << "notified processor: " << what.callId() << " " << what.state << " " << call_processor.id() <<"\n";
+            /* std::cout << "notified processor: " << what.callId() << " " << what.state << " " << call_processor.id() <<"\n"; */
             boost::asio::write(call_processor, boost::asio::buffer("\n"));
             /* kill(call_processor.id(), SIGUSR1); */
         }
@@ -734,6 +734,7 @@ void on_new_sip_message(struct sip_msg * msg)
 
     SipCall sip_call(msg->call);
 
+    std::cout << "from sngrep: " << sip_call.callId() << " " << sip_call.state << "\n";
     /* std::cout << "call state" <<msg->call->state << std::endl; */
 
     /* std::string call_id( msg->call->callid ); */
