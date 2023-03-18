@@ -157,6 +157,11 @@ struct SipCall
         {
             exit(99);
         }
+
+        from = first->sip_from;
+        to = first->sip_to;
+
+
         init_time = msg_get_time(first);
 
 
@@ -181,14 +186,12 @@ struct SipCall
 
     }
 
-    std::string callId() const
-    {
-        return call_id;
-    }
     std::string call_id;
     call_state state;
     std::vector<RtpStream> streams;
 
+    std::optional<std::string> from;
+    std::optional<std::string> to;
     timeval init_time;
     std::optional<timeval> ring_time;
     std::optional<timeval> answer_time;
@@ -233,7 +236,6 @@ EgressIngressMap egress_ingress_map;
 SipCalls sip_calls;
 Class4Info class4_info;
 
-
 typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_code, SipCall)> MessageChannel;
 
 MessageChannel sngrep_channel(context, 100);
@@ -242,7 +244,12 @@ MessageChannel sngrep_channel(context, 100);
 
 /* typedef std::shared_ptr<SipCallData> SipCallDataPtr; */
 
-std::set<WebsocketPtr> established_sessions;
+struct Session
+{
+    bool dump_requested;
+};
+
+std::map<WebsocketPtr, Session> established_sessions;
 
 //------------------------------------------------------------------------------
 
@@ -254,7 +261,7 @@ fail(beast::error_code ec, char const* what)
 }
 
 void process_messages(
-    websocket::stream<beast::tcp_stream>& ws,
+    std::map<WebsocketPtr, Session>::iterator session,
     net::yield_context yield)
 {
     beast::error_code ec;
@@ -265,7 +272,7 @@ void process_messages(
         beast::flat_buffer buffer;
 
         // Read a message
-        ws.async_read(buffer, yield[ec]);
+        session->first->async_read(buffer, yield[ec]);
 
         // This indicates that the session was closed
         if(ec == websocket::error::closed)
@@ -274,11 +281,13 @@ void process_messages(
         if(ec)
             return fail(ec, "read");
 
+        session->second.dump_requested = true;
+        sngrep_channel.cancel();
         // Echo the message back
-        ws.text(ws.got_text());
-        ws.async_write(boost::asio::buffer("Requests are not supported yet"), yield[ec]);
-        if(ec)
-            return fail(ec, "write");
+        /* session->first->text(session->first->got_text()); */
+        /* session->first->async_write(boost::asio::buffer("Requests are not supported yet"), yield[ec]); */
+        /* if(ec) */
+        /*     return fail(ec, "write"); */
     }
 }
 
@@ -312,11 +321,11 @@ do_session(
         return fail(ec, "accept");
 
 
-    established_sessions.insert(ws);
+    auto session_it = established_sessions.try_emplace(ws, Session({ false }) ).first;
 
-    process_messages(*ws, yield);
+    process_messages(session_it, yield);
 
-    established_sessions.erase(ws);
+    established_sessions.erase(session_it);
 
 }
 
@@ -361,7 +370,7 @@ std::string format_timestamp(const timeval& timestamp)
 
     // timestamp_stream << std::put_time(std::gmtime(&sip_call.init_time.tv_sec), "%c") << "." << sip_call.init_time.tv_usec;
 
-    timestamp_stream << std::put_time(std::gmtime(&timestamp.tv_sec), "%c") << "." << timestamp.tv_usec;
+    timestamp_stream << std::put_time(std::gmtime(&timestamp.tv_sec), "%F %T.") << timestamp.tv_usec;
     return timestamp_stream.str();
 }
 
@@ -391,6 +400,15 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
         {
             result_object["hangup_time"] = format_timestamp(*sip_call.hangup_time);
         }
+        if (sip_call.from)
+        {
+            result_object["from"] = *sip_call.from;
+        }
+        if (sip_call.to)
+        {
+            result_object["to"] = *sip_call.to;
+        }
+
 
 
         boost::json::array streams_json;
@@ -437,12 +455,12 @@ void send_updates_to_clients(const std::string ingress_leg_id)
         /* {"other", boost::json::value_from( egress_ingress_map.right.find(ingress_leg_id)->second ) } */
     };
 
-    for ( auto socket: established_sessions)
+    for ( auto session: established_sessions)
     {
         beast::error_code ec;
         std::string msg = boost::json::serialize(state_message);
         std::cout << "sent to websocket: " << msg << "\n";
-        socket->write(boost::asio::buffer(msg), ec);
+        session.first->write(boost::asio::buffer(msg), ec);
     }
 }
 
@@ -451,25 +469,25 @@ do_multiplex(net::yield_context yield)
 {
 
     std::string out;
-    boost::system::error_code ec;
 
     while (true)
     {
+        boost::system::error_code ec;
         SipCall what = sngrep_channel.async_receive( yield[ec]);
 
-        sip_calls.insert_or_assign( what.callId(), what );
+        sip_calls.insert_or_assign( what.call_id, what );
 
         /* std::cout << "callid from sngrep: " << what.callId() << " " << what.state << "\n"; */
 
 
-        if (what.state != 0 && class4_info.count(what.callId()) == 0)
+        if (what.state != 0 && class4_info.count(what.call_id) == 0)
         {
             /* std::cout << "notified processor: " << what.callId() << " " << what.state << " " << call_processor.id() <<"\n"; */
             boost::asio::write(call_processor, boost::asio::buffer("\n"));
             /* kill(call_processor.id(), SIGUSR1); */
         }
 
-        auto maybeIngressLegId = find_ingress_leg( what.callId());
+        auto maybeIngressLegId = find_ingress_leg( what.call_id);
         if (maybeIngressLegId) {
 
             send_updates_to_clients(*maybeIngressLegId);
@@ -734,7 +752,7 @@ void on_new_sip_message(struct sip_msg * msg)
 
     SipCall sip_call(msg->call);
 
-    std::cout << "from sngrep: " << sip_call.callId() << " " << sip_call.state << "\n";
+    std::cout << "from sngrep: " << sip_call.call_id << " " << sip_call.state << "\n";
     /* std::cout << "call state" <<msg->call->state << std::endl; */
 
     /* std::string call_id( msg->call->callid ); */
