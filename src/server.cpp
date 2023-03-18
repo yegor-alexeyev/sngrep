@@ -236,7 +236,7 @@ Class4Info class4_info;
 
 typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_code, SipCall)> MessageChannel;
 
-MessageChannel sngrep_channel(context, 0);
+MessageChannel sngrep_channel(context, 100);
 
 /* typedef SipCall SipCallData; */
 
@@ -741,7 +741,11 @@ void on_new_sip_message(struct sip_msg * msg)
 
     /* legs.try_emplace( call_id, msg->call); */
 
-    sngrep_channel.try_send(boost::asio::error::eof, sip_call);
+    bool send_result = sngrep_channel.try_send(boost::asio::error::eof, sip_call);
+    if (!send_result)
+    {
+        exit(14);
+    }
 }
 
 void on_new_active_call_info(const std::map<std::string, std::string> call_info)
