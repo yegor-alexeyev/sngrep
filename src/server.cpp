@@ -283,6 +283,7 @@ void process_messages(
 
         session->second.dump_requested = true;
         sngrep_channel.cancel();
+        std::cout << "channel" << "canceled" << "\n";
         // Echo the message back
         /* session->first->text(session->first->got_text()); */
         /* session->first->async_write(boost::asio::buffer("Requests are not supported yet"), yield[ec]); */
@@ -476,6 +477,8 @@ do_multiplex(net::yield_context yield)
         SipCall what = sngrep_channel.async_receive( yield[ec]);
 
         sip_calls.insert_or_assign( what.call_id, what );
+
+        std::cout << "next from channel" << what.call_id << "\n";
 
         /* std::cout << "callid from sngrep: " << what.callId() << " " << what.state << "\n"; */
 
