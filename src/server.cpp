@@ -64,6 +64,7 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 typedef beast::websocket::stream<beast::tcp_stream> Websocket;
 typedef std::shared_ptr<Websocket> WebsocketPtr;
+typedef std::weak_ptr<Websocket> WebsocketWeakPtr;
 
 
 
@@ -236,7 +237,14 @@ EgressIngressMap egress_ingress_map;
 SipCalls sip_calls;
 Class4Info class4_info;
 
-typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_code, SipCall)> MessageChannel;
+struct ClientMessage
+{
+    WebsocketWeakPtr client;
+};
+
+typedef std::variant<SipCall, ClientMessage> Message;
+
+typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_code, Message)> MessageChannel;
 
 MessageChannel sngrep_channel(context, 100);
 
@@ -246,7 +254,6 @@ MessageChannel sngrep_channel(context, 100);
 
 struct Session
 {
-    bool dump_requested;
 };
 
 std::map<WebsocketPtr, Session> established_sessions;
@@ -281,8 +288,8 @@ void process_messages(
         if(ec)
             return fail(ec, "read");
 
-        session->second.dump_requested = true;
-        sngrep_channel.cancel();
+        sngrep_channel.try_send(boost::asio::error::eof, ClientMessage({session->first}));
+
         std::cout << "channel" << "canceled" << "\n";
         // Echo the message back
         /* session->first->text(session->first->got_text()); */
@@ -322,7 +329,7 @@ do_session(
         return fail(ec, "accept");
 
 
-    auto session_it = established_sessions.try_emplace(ws, Session({ false }) ).first;
+    auto session_it = established_sessions.try_emplace(ws, Session({ }) ).first;
 
     process_messages(session_it, yield);
 
@@ -445,6 +452,8 @@ void send_updates_to_clients(const std::string ingress_leg_id)
     /* auto egress_leg_fields = gather_leg_fields( egress_leg_id); */
     egress_legs_json.push_back( gather_leg_fields( egress_leg_id) );
 
+    //todo support all legs
+
     /* auto ingress_leg_fields = gather_leg_fields( ingress_leg_id); */
 
 
@@ -465,8 +474,64 @@ void send_updates_to_clients(const std::string ingress_leg_id)
     }
 }
 
-void
-do_multiplex(net::yield_context yield)
+
+template <typename Iterator>
+Iterator next_different_key(const Iterator start, const Iterator end)
+{
+    Iterator result = start;
+    if (result == end) {
+        return end;
+    }
+
+    do  {
+        result++;
+    } while (result != end && result->first == start->first);
+
+    return result;
+}
+
+void process_message(ClientMessage& message)
+{
+    WebsocketPtr client = message.client.lock();
+    if (client)
+    {
+        for( auto it = egress_ingress_map.right.begin(); it != egress_ingress_map.right.end(); it = next_different_key(it, egress_ingress_map.right.end()))
+        {
+            send_updates_to_clients(it->first);
+        }
+        //TODO send to partticular client
+    }
+}
+
+
+void process_message(SipCall& what)
+{
+    sip_calls.insert_or_assign( what.call_id, what );
+
+    std::cout << "next from channel" << what.call_id << "\n";
+
+    //std::cout << "callid from sngrep: " << what.callId() << " " << what.state << "\n";
+
+
+    if (what.state != 0 && class4_info.count(what.call_id) == 0)
+    {
+     //   std::cout << "notified processor: " << what.callId() << " " << what.state << " " << call_processor.id() <<"\n";
+        boost::asio::write(call_processor, boost::asio::buffer("\n"));
+    }
+
+    auto maybeIngressLegId = find_ingress_leg( what.call_id);
+    if (maybeIngressLegId) {
+
+        send_updates_to_clients(*maybeIngressLegId);
+
+    }
+    else
+    {
+        //update for a leg which has not been classified yet. Do nothing
+    }
+}
+
+void do_multiplex(net::yield_context yield)
 {
 
     std::string out;
@@ -474,20 +539,23 @@ do_multiplex(net::yield_context yield)
     while (true)
     {
         boost::system::error_code ec;
-        SipCall what = sngrep_channel.async_receive( yield[ec]);
+        Message what = sngrep_channel.async_receive( yield[ec]);
+
+        std::visit([](auto&& msg) {process_message(msg);}, what);
+
+        /*
 
         sip_calls.insert_or_assign( what.call_id, what );
 
         std::cout << "next from channel" << what.call_id << "\n";
 
-        /* std::cout << "callid from sngrep: " << what.callId() << " " << what.state << "\n"; */
+        //std::cout << "callid from sngrep: " << what.callId() << " " << what.state << "\n";
 
 
         if (what.state != 0 && class4_info.count(what.call_id) == 0)
         {
-            /* std::cout << "notified processor: " << what.callId() << " " << what.state << " " << call_processor.id() <<"\n"; */
+         //   std::cout << "notified processor: " << what.callId() << " " << what.state << " " << call_processor.id() <<"\n";
             boost::asio::write(call_processor, boost::asio::buffer("\n"));
-            /* kill(call_processor.id(), SIGUSR1); */
         }
 
         auto maybeIngressLegId = find_ingress_leg( what.call_id);
@@ -501,7 +569,7 @@ do_multiplex(net::yield_context yield)
         {
             //update for a leg which has not been classified yet. Do nothing
         }
-
+*/
 
 
     }
