@@ -54,6 +54,7 @@ extern "C" {
 #include <signal.h>
 
 
+
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
@@ -228,6 +229,8 @@ typedef std::map<std::string, std::string> Class4Fields;
 
 
 typedef boost::bimap<boost::bimaps::set_of<std::string>, boost::bimaps::multiset_of<std::string> > EgressIngressMap;
+
+
 
 typedef std::map<std::string, SipCall> SipCalls;
 typedef std::map<std::string, Class4Fields> Class4Info;
@@ -605,13 +608,35 @@ std::string async_read_line(T& proc, std::string& buffer, net::yield_context yie
     return line;
 }
 
+bool try_insert_to_backlog(const std::string& value)
+{
+    typedef boost::bimap< boost::bimaps::set_of<std::string>, boost::bimaps::multiset_of<time_t> > Backlog;
+    static Backlog backlog;
+
+    time_t time;
+    gmtime(&time);
+
+    const auto [it, is_inserted] = backlog.left.insert({value, time});
+
+    if (!is_inserted)
+    {
+        backlog.left.replace_data(it, time);
+    }
+    
+    if (backlog.size() > 3000)
+    {
+        backlog.right.erase(backlog.right.begin());
+    }
+
+    return is_inserted;
+}
+
 void
 do_active_call_processor( net::io_context& ioc, net::yield_context yield)
 {
     boost::system::error_code ec;
     call_processor = boost::process::v2::popen(ioc, "get_active_call.expect", {});
 
-    static std::set<std::string> backlog;
 
     std::string buf;
     while (true)
@@ -630,7 +655,7 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
             exit(73);
         }
 
-        if (!backlog.insert(result).second)
+        if (!try_insert_to_backlog(result))
         {
             //filter out duplicate lines
             continue;
