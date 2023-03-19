@@ -269,7 +269,7 @@ std::map<WebsocketPtr, Session> established_sessions;
 void
 fail(beast::error_code ec, char const* what)
 {
-    std::cerr << what << ": " << ec.message() << "\n";
+    std::cout << what << ": " << ec.message() << "\n";
 }
 
 void process_messages(
@@ -512,7 +512,7 @@ void process_message(ClientMessage& message)
                 const std::string update_message = prepare_sngrep_update(it->first);
 
                 beast::error_code ec;
-                std::cout << "sent to websocket: " << update_message << "\n";
+                /* std::cout << "sent to websocket: " << update_message << "\n"; */
                 client->write(boost::asio::buffer(update_message), ec);
             }
         }
@@ -524,7 +524,7 @@ void process_message(SipCall& what)
 {
     sip_calls.insert_or_assign( what.call_id, what );
 
-    std::cout << "next from channel" << what.call_id << "\n";
+    /* std::cout << "next from channel" << what.call_id << "\n"; */
 
     //std::cout << "callid from sngrep: " << what.callId() << " " << what.state << "\n";
 
@@ -840,7 +840,7 @@ void on_new_sip_message(struct sip_msg * msg)
 
     SipCall sip_call(msg->call);
 
-    std::cout << "from sngrep: " << sip_call.call_id << " " << sip_call.state << "\n";
+    /* std::cout << "from sngrep: " << sip_call.call_id << " " << sip_call.state << "\n"; */
     /* std::cout << "call state" <<msg->call->state << std::endl; */
 
     /* std::string call_id( msg->call->callid ); */
