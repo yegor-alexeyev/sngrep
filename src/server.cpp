@@ -25,6 +25,7 @@ extern "C" {
 #include <boost/algorithm/string.hpp>
 
 #include <boost/json/value_from.hpp>
+#include <boost/json/value_to.hpp>
 #include <boost/json/serialize.hpp>
 #include <boost/json/parse.hpp>
 
@@ -259,6 +260,7 @@ MessageChannel sngrep_channel(context, 100);
 
 struct Session
 {
+    std::map<std::string, std::string> filter;
 };
 
 std::map<WebsocketPtr, Session> established_sessions;
@@ -270,6 +272,31 @@ void
 fail(beast::error_code ec, char const* what)
 {
     std::cout << what << ": " << ec.message() << "\n";
+}
+
+std::map<std::string, std::string> collect_string_members(boost::json::value jv)
+{
+    std::map<std::string, std::string> result;
+
+    if (!jv.is_object())
+    {
+        std::cout << "invalid json: root is not object" << "\n";
+        return result;
+    }
+
+    boost::json::object jo = jv.as_object();
+    for (auto kvp: jo)
+    {
+        if (kvp.value().is_string())
+        {
+            result[kvp.key()] = kvp.value().as_string();
+        }
+        else
+        {
+            std::cout << "invalid object member " << kvp.key() << "\n";
+        }
+    }
+    return result;
 }
 
 void process_messages(
@@ -299,22 +326,24 @@ void process_messages(
         if( ec )
             return fail(ec, "parsing failed");
 
-        if (!jv.is_object())
-        {
-            return fail(ec, "invalid json: root is not object");
-        }
-        boost::json::object jo = jv.as_object();
-        if (!jo.contains("command"))
+        std::map<std::string, std::string> members = collect_string_members(jv);
+
+        if (members.count("command") == 0)
         {
             return fail(ec, "invalid json: missing command attribute");
         }
-        boost::json::value command_val = jo["command"];
-        if (!command_val.is_string())
+
+
+        if (members["command"] == "subscribe")
         {
-            return fail(ec, "invalid json: invalid command attribute type");
+            session->second.filter = members;
+            session->second.filter.erase("command");
+        }
+        else
+        {
+            sngrep_channel.try_send(boost::asio::error::eof, ClientMessage({session->first, members["command"] }));
         }
 
-        sngrep_channel.try_send(boost::asio::error::eof, ClientMessage({session->first, std::string(command_val.as_string())}));
 
         /* std::cout << "channel" << "canceled" << "\n"; */
         // Echo the message back
@@ -500,6 +529,28 @@ Iterator next_different_key(const Iterator start, const Iterator end)
     return result;
 }
 
+bool check_filter_field(std::map<std::string, std::string> data, std::map<std::string, std::string> filter, const std::string&key)
+{
+    if (filter.count(key) == 0)
+    {
+        return true;
+    }
+    if (data.count(key) == 0)
+    {
+        return false;
+    }
+    return data.at(key) == filter.at(key);
+}
+
+bool check_filter(const std::string& ingressId, std::map<std::string, std::string> filter)
+{
+    auto ingress_fields = class4_info[ingressId];
+
+    return check_filter_field( ingress_fields, filter, "ingress_carrier")
+        && check_filter_field( ingress_fields, filter, "ingress_trunk");
+}
+
+
 void process_message(ClientMessage& message)
 {
     WebsocketPtr client = message.client.lock();
@@ -513,12 +564,12 @@ void process_message(ClientMessage& message)
 
                 beast::error_code ec;
                 /* std::cout << "sent to websocket: " << update_message << "\n"; */
-                client->write(boost::asio::buffer(update_message), ec);
+                if (check_filter(it->first, established_sessions.at(client).filter))
+                    client->write(boost::asio::buffer(update_message), ec);
             }
         }
     }
 }
-
 
 void process_message(SipCall& what)
 {
@@ -542,8 +593,11 @@ void process_message(SipCall& what)
         for ( auto session: established_sessions)
         {
             beast::error_code ec;
-            std::cout << "sent to websocket: " << update_message << "\n";
-            session.first->write(boost::asio::buffer(update_message), ec);
+            
+
+            /* std::cout << "sent to websocket: " << update_message << "\n"; */
+            if (check_filter(*maybeIngressLegId, session.second.filter))
+                session.first->write(boost::asio::buffer(update_message), ec);
         }
 
     }
@@ -748,8 +802,9 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
         for ( auto session: established_sessions)
         {
             beast::error_code ec;
-            std::cout << "sent to websocket: " << update_message << "\n";
-            session.first->write(boost::asio::buffer(update_message), ec);
+            /* std::cout << "sent to websocket: " << update_message << "\n"; */
+            if (check_filter(ingress_callid, session.second.filter))
+                session.first->write(boost::asio::buffer(update_message), ec);
         }
     }
 }
