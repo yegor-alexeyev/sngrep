@@ -484,9 +484,8 @@ void process_message(ClientMessage& message)
             const std::string update_message = prepare_sngrep_update(it->first);
 
             beast::error_code ec;
-            std::string msg = boost::json::serialize(update_message);
-            std::cout << "sent to websocket: " << msg << "\n";
-            client->write(boost::asio::buffer(msg), ec);
+            std::cout << "sent to websocket: " << update_message << "\n";
+            client->write(boost::asio::buffer(update_message), ec);
         }
     }
 }
@@ -514,7 +513,6 @@ void process_message(SipCall& what)
         for ( auto session: established_sessions)
         {
             beast::error_code ec;
-            std::string msg = boost::json::serialize(update_message);
             std::cout << "sent to websocket: " << update_message << "\n";
             session.first->write(boost::asio::buffer(update_message), ec);
         }
