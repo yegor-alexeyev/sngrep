@@ -26,6 +26,7 @@ extern "C" {
 
 #include <boost/json/value_from.hpp>
 #include <boost/json/serialize.hpp>
+#include <boost/json/parse.hpp>
 
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/popen.hpp>
@@ -243,6 +244,7 @@ Class4Info class4_info;
 struct ClientMessage
 {
     WebsocketWeakPtr client;
+    std::string command;
 };
 
 typedef std::variant<SipCall, ClientMessage> Message;
@@ -274,7 +276,7 @@ void process_messages(
     std::map<WebsocketPtr, Session>::iterator session,
     net::yield_context yield)
 {
-    beast::error_code ec;
+    boost::system::error_code ec;
 
     for(;;)
     {
@@ -291,9 +293,30 @@ void process_messages(
         if(ec)
             return fail(ec, "read");
 
-        sngrep_channel.try_send(boost::asio::error::eof, ClientMessage({session->first}));
+        const std::string message = beast::buffers_to_string(buffer.data());
 
-        std::cout << "channel" << "canceled" << "\n";
+        boost::json::value jv = boost::json::parse( message, ec );
+        if( ec )
+            return fail(ec, "parsing failed");
+
+        if (!jv.is_object())
+        {
+            return fail(ec, "invalid json: root is not object");
+        }
+        boost::json::object jo = jv.as_object();
+        if (!jo.contains("command"))
+        {
+            return fail(ec, "invalid json: missing command attribute");
+        }
+        boost::json::value command_val = jo["command"];
+        if (!command_val.is_string())
+        {
+            return fail(ec, "invalid json: invalid command attribute type");
+        }
+
+        sngrep_channel.try_send(boost::asio::error::eof, ClientMessage({session->first, std::string(command_val.as_string())}));
+
+        /* std::cout << "channel" << "canceled" << "\n"; */
         // Echo the message back
         /* session->first->text(session->first->got_text()); */
         /* session->first->async_write(boost::asio::buffer("Requests are not supported yet"), yield[ec]); */
@@ -482,13 +505,16 @@ void process_message(ClientMessage& message)
     WebsocketPtr client = message.client.lock();
     if (client)
     {
-        for( auto it = egress_ingress_map.right.begin(); it != egress_ingress_map.right.end(); it = next_different_key(it, egress_ingress_map.right.end()))
+        if (message.command == "list")
         {
-            const std::string update_message = prepare_sngrep_update(it->first);
+            for( auto it = egress_ingress_map.right.begin(); it != egress_ingress_map.right.end(); it = next_different_key(it, egress_ingress_map.right.end()))
+            {
+                const std::string update_message = prepare_sngrep_update(it->first);
 
-            beast::error_code ec;
-            std::cout << "sent to websocket: " << update_message << "\n";
-            client->write(boost::asio::buffer(update_message), ec);
+                beast::error_code ec;
+                std::cout << "sent to websocket: " << update_message << "\n";
+                client->write(boost::asio::buffer(update_message), ec);
+            }
         }
     }
 }
