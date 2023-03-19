@@ -183,6 +183,11 @@ struct SipCall
 
         }
 
+        src_ip = first->packet->src.ip;
+        src_port = std::to_string(first->packet->src.port);
+
+        dest_ip = first->packet->dst.ip;
+        dest_port = std::to_string(first->packet->dst.port);
 
         /* ring_time = msg_get_time(call->cstart_msg); */
         /* answer_time = msg_get_time(call->cstart_msg); */
@@ -200,6 +205,13 @@ struct SipCall
     std::optional<timeval> ring_time;
     std::optional<timeval> answer_time;
     std::optional<timeval> hangup_time;
+
+
+    std::string src_ip;
+    std::string src_port;
+
+    std::string dest_ip;
+    std::string dest_port;
 };
 
 /* struct Leg */
@@ -472,6 +484,11 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
             result_object["to"] = *sip_call.to;
         }
 
+        result_object["source_ip"] = sip_call.src_ip;
+        result_object["source_port"] = sip_call.src_port;
+
+        result_object["destination_ip"] = sip_call.dest_ip;
+        result_object["destination_port"] = sip_call.dest_port;
 
 
         boost::json::array streams_json;
