@@ -439,24 +439,14 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
 
 }
 
-void send_updates_to_clients(const std::string ingress_leg_id)
+std::string prepare_sngrep_update(const std::string ingress_leg_id)
 {
-
-    const std::string egress_leg_id = egress_ingress_map.right.find(ingress_leg_id)->second ;
-    /* const std::string egress_leg_id = boost::json::value_from( egress_ingress_map.right.find(ingress_leg_id)->second ); */
-
     boost::json::array egress_legs_json;
 
-    /* boost::json::object egress_leg_json; */
-
-    /* auto egress_leg_fields = gather_leg_fields( egress_leg_id); */
-    egress_legs_json.push_back( gather_leg_fields( egress_leg_id) );
-
-    //todo support all legs
-
-    /* auto ingress_leg_fields = gather_leg_fields( ingress_leg_id); */
-
-
+    auto ingress_egress_subrange = egress_ingress_map.right.equal_range(ingress_leg_id);
+    std::for_each(ingress_egress_subrange.first, ingress_egress_subrange.second, [&egress_legs_json](const auto& ingress_egress) {
+        egress_legs_json.push_back( gather_leg_fields( ingress_egress.second ) );
+    });
 
     boost::json::object state_message = {
         {"ingress", gather_leg_fields( ingress_leg_id) },
@@ -465,13 +455,7 @@ void send_updates_to_clients(const std::string ingress_leg_id)
         /* {"other", boost::json::value_from( egress_ingress_map.right.find(ingress_leg_id)->second ) } */
     };
 
-    for ( auto session: established_sessions)
-    {
-        beast::error_code ec;
-        std::string msg = boost::json::serialize(state_message);
-        std::cout << "sent to websocket: " << msg << "\n";
-        session.first->write(boost::asio::buffer(msg), ec);
-    }
+    return boost::json::serialize(state_message);
 }
 
 
@@ -497,9 +481,13 @@ void process_message(ClientMessage& message)
     {
         for( auto it = egress_ingress_map.right.begin(); it != egress_ingress_map.right.end(); it = next_different_key(it, egress_ingress_map.right.end()))
         {
-            send_updates_to_clients(it->first);
+            const std::string update_message = prepare_sngrep_update(it->first);
+
+            beast::error_code ec;
+            std::string msg = boost::json::serialize(update_message);
+            std::cout << "sent to websocket: " << msg << "\n";
+            client->write(boost::asio::buffer(msg), ec);
         }
-        //TODO send to partticular client
     }
 }
 
@@ -522,7 +510,14 @@ void process_message(SipCall& what)
     auto maybeIngressLegId = find_ingress_leg( what.call_id);
     if (maybeIngressLegId) {
 
-        send_updates_to_clients(*maybeIngressLegId);
+        const std::string update_message = prepare_sngrep_update(*maybeIngressLegId);
+        for ( auto session: established_sessions)
+        {
+            beast::error_code ec;
+            std::string msg = boost::json::serialize(update_message);
+            std::cout << "sent to websocket: " << update_message << "\n";
+            session.first->write(boost::asio::buffer(update_message), ec);
+        }
 
     }
     else
@@ -542,35 +537,6 @@ void do_multiplex(net::yield_context yield)
         Message what = sngrep_channel.async_receive( yield[ec]);
 
         std::visit([](auto&& msg) {process_message(msg);}, what);
-
-        /*
-
-        sip_calls.insert_or_assign( what.call_id, what );
-
-        std::cout << "next from channel" << what.call_id << "\n";
-
-        //std::cout << "callid from sngrep: " << what.callId() << " " << what.state << "\n";
-
-
-        if (what.state != 0 && class4_info.count(what.call_id) == 0)
-        {
-         //   std::cout << "notified processor: " << what.callId() << " " << what.state << " " << call_processor.id() <<"\n";
-            boost::asio::write(call_processor, boost::asio::buffer("\n"));
-        }
-
-        auto maybeIngressLegId = find_ingress_leg( what.call_id);
-        if (maybeIngressLegId) {
-
-            send_updates_to_clients(*maybeIngressLegId);
-
-
-        }
-        else
-        {
-            //update for a leg which has not been classified yet. Do nothing
-        }
-*/
-
 
     }
 }
@@ -663,10 +629,6 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
 
         if (result.size() <= 2)
         {
-            std::cout << "WWW:" << result << ":WWW";
-            std::cout << "WWW:" << result << ":WWW";
-            std::cout << "WWW:" << result << ":WWW";
-            std::cout << "WWW:" << result << ":WWW" << "\n";
             exit(73);
         }
 
@@ -733,7 +695,13 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
              egress_callid ,  ingress_callid
         ));
 
-        send_updates_to_clients(ingress_callid);
+        const std::string update_message = prepare_sngrep_update(ingress_callid);
+        for ( auto session: established_sessions)
+        {
+            beast::error_code ec;
+            std::cout << "sent to websocket: " << update_message << "\n";
+            session.first->write(boost::asio::buffer(update_message), ec);
+        }
     }
 }
 
