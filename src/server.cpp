@@ -841,7 +841,7 @@ void server_thread()
     std::set_terminate( terminate_handler );
     std::atexit( exit_handler );
 
-    auto const address = net::ip::make_address("127.0.0.1");
+    auto const address = net::ip::make_address("0.0.0.0");
     auto const port = static_cast<unsigned short>(8080);
 
     // Spawns an active call script processor
