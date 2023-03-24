@@ -958,9 +958,9 @@ sip_get_msg_header(sip_msg_t *msg, char *out)
 
     // Get msg header
     if (setting_enabled(SETTING_DISPLAY_ALIAS)) {
-        sprintf(out, "%s %s %s -> %s", date, time, get_alias_value(from_addr), get_alias_value(to_addr));
+        sprintf(out, "%s %s %s a> %s", date, time, get_alias_value(from_addr), get_alias_value(to_addr));
     } else {
-        sprintf(out, "%s %s %s -> %s", date, time, from_addr, to_addr);
+        sprintf(out, "%s %s %s b> %s", date, time, from_addr, to_addr);
     }
     return out;
 }
