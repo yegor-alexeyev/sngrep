@@ -488,7 +488,6 @@ main(int argc, char* argv[])
 
     if (text_outfile)
     {
-        printf(stdout, "WTFGOINGON\n");
         vector_iter_t calls;
         calls = sip_calls_iterator();
 
