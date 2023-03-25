@@ -93,6 +93,9 @@ struct SipCall
     std::string b_rtp_packet_count;
 
     std::optional<std::string> codec;
+
+    std::string a_rtp_payload_bytes;
+    std::string b_rtp_payload_bytes;
 };
 
 std::vector<std::string> read_file_as_lines(const std::string& filename);

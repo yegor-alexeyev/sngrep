@@ -105,6 +105,7 @@ stream_add_packet(rtp_stream_t *stream, packet_t *packet)
 
     stream->lasttm = (int) time(NULL);
     stream->pktcnt++;
+    stream->payload_bytes_count += packet->payload_len;
 }
 
 uint32_t

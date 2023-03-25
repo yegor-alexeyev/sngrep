@@ -109,6 +109,7 @@ struct rtp_stream {
     sdp_media_t *media;
     //! Packet count for this stream
     uint32_t pktcnt;
+    uint32_t payload_bytes_count;
     //! Time of first received packet of stream
     struct timeval time;
     //! Unix timestamp of last received packet

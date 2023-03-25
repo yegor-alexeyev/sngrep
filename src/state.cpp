@@ -79,6 +79,7 @@ SipCall::SipCall(struct sip_call * call)
             a_rtp_dest_ip = stream->media->address.ip;
             a_rtp_dest_port = std::to_string(stream->media->address.port);
             b_rtp_packet_count = std::to_string(stream->pktcnt);
+            b_rtp_payload_bytes = std::to_string(stream->payload_bytes_count);
         }
         else
         {
@@ -86,6 +87,7 @@ SipCall::SipCall(struct sip_call * call)
             b_rtp_dest_port = std::to_string(stream->media->address.port);
             codec = media_get_format(stream->media, stream->media->fmtcode);
             a_rtp_packet_count = std::to_string(stream->pktcnt);
+            a_rtp_payload_bytes = std::to_string(stream->payload_bytes_count);
         }
     }
 
@@ -343,6 +345,9 @@ optionally_set_json_field(JSON_OBJECT, #FIELD_NAME, sip_call.FIELD_NAME)
 
         result_object["a_rtp_packet_count"] = sip_call.a_rtp_packet_count;
         result_object["b_rtp_packet_count"] = sip_call.b_rtp_packet_count;
+
+        result_object["a_rtp_payload_bytes"] = sip_call.a_rtp_payload_bytes;
+        result_object["b_rtp_payload_bytes"] = sip_call.b_rtp_payload_bytes;
 
         boost::json::array streams_json;
         for (const auto& stream: sip_call.streams)
