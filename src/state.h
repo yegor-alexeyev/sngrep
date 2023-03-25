@@ -83,11 +83,15 @@ struct SipCall
     std::string dest_ip;
     std::string dest_port;
 
-    std::optional<std::string> a_rtp_ip;
-    std::optional<std::string> a_rtp_port;
+    std::optional<std::string> a_rtp_dest_ip;
+    std::optional<std::string> a_rtp_dest_port;
 
-    std::optional<std::string> b_rtp_ip;
-    std::optional<std::string> b_rtp_port;
+    std::optional<std::string> b_rtp_dest_ip;
+    std::optional<std::string> b_rtp_dest_port;
+
+    std::string a_rtp_packet_count;
+    std::string b_rtp_packet_count;
+
     std::optional<std::string> codec;
 };
 

@@ -76,14 +76,16 @@ SipCall::SipCall(struct sip_call * call)
         }
         if (stream->media->msg->reqresp == SIP_METHOD_INVITE)
         {
-            a_rtp_ip = stream->media->address.ip;
-            a_rtp_port = std::to_string(stream->media->address.port);
+            a_rtp_dest_ip = stream->media->address.ip;
+            a_rtp_dest_port = std::to_string(stream->media->address.port);
+            b_rtp_packet_count = std::to_string(stream->pktcnt);
         }
         else
         {
-            b_rtp_ip = stream->media->address.ip;
-            b_rtp_port = std::to_string(stream->media->address.port);
+            b_rtp_dest_ip = stream->media->address.ip;
+            b_rtp_dest_port = std::to_string(stream->media->address.port);
             codec = media_get_format(stream->media, stream->media->fmtcode);
+            a_rtp_packet_count = std::to_string(stream->pktcnt);
         }
     }
 
@@ -333,11 +335,14 @@ optionally_set_json_field(JSON_OBJECT, #FIELD_NAME, sip_call.FIELD_NAME)
         result_object["destination_ip"] = sip_call.dest_ip;
         result_object["destination_port"] = sip_call.dest_port;
 
-        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, a_rtp_ip);
-        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, a_rtp_port);
-        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, b_rtp_ip);
-        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, b_rtp_port);
+        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, a_rtp_dest_ip);
+        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, a_rtp_dest_port);
+        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, b_rtp_dest_ip);
+        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, b_rtp_dest_port);
         MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, codec);
+
+        result_object["a_rtp_packet_count"] = sip_call.a_rtp_packet_count;
+        result_object["b_rtp_packet_count"] = sip_call.b_rtp_packet_count;
 
         boost::json::array streams_json;
         for (const auto& stream: sip_call.streams)
