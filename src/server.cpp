@@ -139,12 +139,6 @@ void process_messages(
         }
 
 
-        /* std::cout << "channel" << "canceled" << "\n"; */
-        // Echo the message back
-        /* session->first->text(session->first->got_text()); */
-        /* session->first->async_write(boost::asio::buffer("Requests are not supported yet"), yield[ec]); */
-        /* if(ec) */
-        /*     return fail(ec, "write"); */
     }
 }
 
@@ -189,7 +183,7 @@ do_session(
 //------------------------------------------------------------------------------
 
 
-void process_message(ClientMessage& message)
+void process_message(ClientMessage& message, net::yield_context& yield)
 {
     WebsocketPtr client = message.client.lock();
     if (client)
@@ -200,7 +194,7 @@ void process_message(ClientMessage& message)
             for ( const std::string& update_message: list_of_messages)
             {
                 beast::error_code ec;
-                client->write(boost::asio::buffer(update_message), ec);
+                client->async_write(boost::asio::buffer(update_message), yield[ec]);
                 if (ec)
                 {
                     std::cout << "client write failure " << ec << std::endl;
@@ -211,7 +205,7 @@ void process_message(ClientMessage& message)
     }
 }
 
-void process_message(SipCall& what)
+void process_message(SipCall& what, net::yield_context& yield)
 {
     update_state_from_sngrep(what);
 
@@ -237,7 +231,11 @@ void process_message(SipCall& what)
 
             /* std::cout << "sent to websocket: " << update_message << "\n"; */
             if (check_filter(*maybeIngressLegId, session.second.filter))
-                session.first->write(boost::asio::buffer(update_message), ec);
+            {
+                session.first->async_write(boost::asio::buffer(update_message), yield[ec]);
+                if(ec)
+                    return fail(ec, "write_sngrep_update");
+            }
         }
 
     }
@@ -257,7 +255,7 @@ void do_multiplex(net::yield_context yield)
         boost::system::error_code ec;
         Message what = sngrep_channel.async_receive( yield[ec]);
 
-        std::visit([](auto&& msg) {process_message(msg);}, what);
+        std::visit([&yield](auto&& msg) {process_message(msg, yield);}, what);
 
     }
 }
@@ -413,27 +411,6 @@ void server_thread()
 
     /* return EXIT_SUCCESS; */
 }
-
-/* void process_sip_data(const SipCallDataPtr& sip_call_data) */
-/* { */
-/*     for (auto& websocket_sip_data: established_sessions) */
-/*     { */
-/*         if (websocket_sip_data.second) */
-/*         { */
-/*             printf("dropping update\n"); */
-/*         } */
-/*         else */
-/*         { */
-/*             websocket_sip_data.second = sip_call_data; */
-/*             websocket_sip_data.first->async_write(boost::asio::buffer(sip_call_data->call_id), */ 
-/*                 [&data=websocket_sip_data.second] (beast::error_code const& ec, std::size_t bytes_transferred) */ 
-/*                 { */
-/*                     data.reset(); */
-/*                 } */
-/*             ); */
-/*         } */
-/*     } */
-/* } */
 
 void on_new_sip_message(struct sip_msg * msg)
 {
