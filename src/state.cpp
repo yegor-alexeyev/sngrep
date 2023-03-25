@@ -222,7 +222,7 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
         for (const auto& stream: sip_call.streams)
         {
             std::map<std::string, std::string> fields;
-            fields["count"] = stream.count;
+            fields["count"] = std::to_string(stream.count);
             fields["type"] = std::to_string(stream.type);
             fields["src_ip"] = stream.src_ip;
             fields["src_port"] = std::to_string(stream.src_port);
