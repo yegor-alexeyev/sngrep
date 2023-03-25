@@ -45,6 +45,15 @@ struct RtpStream
         
         dest_ip = std::string(stream->dst.ip);
         dest_port = stream->dst.port;
+        if (!stream->media)
+        {
+            exit(100);
+        }
+
+        m_ip = std::string(stream->media->address.ip);
+        m_port = std::to_string(stream->media->address.port);
+        m_type = std::string(stream->media->type);
+        m_fmtcode = std::to_string(stream->media->fmtcode);
     }
 
     int count;
@@ -55,7 +64,12 @@ struct RtpStream
     std::string dest_ip;
     int dest_port;
     
+    std::string m_ip;
+    std::string m_port;
+    std::string m_type;
+    std::string m_fmtcode;
 };
+
 struct SipCall
 {
     explicit SipCall()
