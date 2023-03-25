@@ -20,6 +20,83 @@
 #include <functional>
 #include <iomanip>
 
+RtpStream::RtpStream(rtp_stream_t *stream)
+{
+
+    count = stream->pktcnt;
+    type = stream->type;
+    src_ip = std::string(stream->src.ip);
+    src_port = stream->src.port;
+    
+    dest_ip = std::string(stream->dst.ip);
+    dest_port = stream->dst.port;
+    if (!stream->media)
+    {
+        exit(100);
+    }
+
+    m_ip = std::string(stream->media->address.ip);
+    m_port = std::to_string(stream->media->address.port);
+    m_type = std::string(stream->media->type);
+    m_fmtcode = std::to_string(stream->media->fmtcode);
+
+    if (!stream->media->msg)
+    {
+        exit(100);
+    }
+    m_reqresp = std::to_string(stream->media->msg->reqresp);
+}
+
+SipCall::SipCall(struct sip_call * call)
+{
+    call_id = std::string(call->callid);
+    state = (call_state)call->state;
+
+    rtp_stream_t *stream;
+    vector_iter_t streams_it = vector_iterator(call->streams);
+
+    while ( (stream = (rtp_stream_t*)vector_iterator_next(&streams_it))) {
+        streams.emplace_back( stream );
+    }
+
+    sip_msg_t *first = (sip_msg_t *)vector_first(call->msgs);
+    if (first->reqresp != SIP_METHOD_INVITE) 
+    {
+        exit(99);
+    }
+
+    from = first->sip_from;
+    to = first->sip_to;
+
+
+    init_time = msg_get_time(first);
+
+
+    vector_iter_t msgs_it = vector_iterator(call->msgs);
+    while (sip_msg_t* msg = (sip_msg_t*)vector_iterator_next(&msgs_it)) {
+        if (!ring_time && (msg->reqresp == 180 || msg->reqresp == 183)) {
+            ring_time = msg_get_time(msg);
+        }
+        if (!answer_time && (msg->reqresp == 200)) {
+            answer_time = msg_get_time(msg);
+        }
+        if (!hangup_time && (msg->reqresp == SIP_METHOD_BYE || msg->reqresp == SIP_METHOD_CANCEL || (msg->reqresp >= 400 && msg->reqresp < 600))) {
+            hangup_time = msg_get_time(msg);
+        }
+
+    }
+
+    src_ip = first->packet->src.ip;
+    src_port = std::to_string(first->packet->src.port);
+
+    dest_ip = first->packet->dst.ip;
+    dest_port = std::to_string(first->packet->dst.port);
+
+    /* ring_time = msg_get_time(call->cstart_msg); */
+    /* answer_time = msg_get_time(call->cstart_msg); */
+    /* hangup_time = msg_get_time(call->cstart_msg); */
+
+}
 std::vector<std::string> read_file_as_lines(const std::string& filename)
 {
     std::ifstream in(filename);
@@ -233,6 +310,7 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
             fields["m_port"] = stream.m_port;
             fields["m_type"] = stream.m_type;
             fields["m_fmtcode"] = stream.m_fmtcode;
+            fields["m_reqresp"] = stream.m_reqresp;
 
             streams_json.push_back( boost::json::value_from( fields ) );
         }

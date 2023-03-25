@@ -35,26 +35,7 @@ extern "C" {
 
 struct RtpStream
 {
-    explicit RtpStream(rtp_stream_t *stream)
-    {
-
-        count = stream->pktcnt;
-        type = stream->type;
-        src_ip = std::string(stream->src.ip);
-        src_port = stream->src.port;
-        
-        dest_ip = std::string(stream->dst.ip);
-        dest_port = stream->dst.port;
-        if (!stream->media)
-        {
-            exit(100);
-        }
-
-        m_ip = std::string(stream->media->address.ip);
-        m_port = std::to_string(stream->media->address.port);
-        m_type = std::string(stream->media->type);
-        m_fmtcode = std::to_string(stream->media->fmtcode);
-    }
+    explicit RtpStream(rtp_stream_t *stream);
 
     int count;
     int type;
@@ -68,6 +49,7 @@ struct RtpStream
     std::string m_port;
     std::string m_type;
     std::string m_fmtcode;
+    std::string m_reqresp;
 };
 
 struct SipCall
@@ -80,56 +62,7 @@ struct SipCall
         exit(140);
     }
 
-    explicit SipCall(struct sip_call * call)
-    {
-        call_id = std::string(call->callid);
-        state = (call_state)call->state;
-
-        rtp_stream_t *stream;
-        vector_iter_t streams_it = vector_iterator(call->streams);
-
-        while ( (stream = (rtp_stream_t*)vector_iterator_next(&streams_it))) {
-            streams.emplace_back( stream );
-        }
-
-        sip_msg_t *first = (sip_msg_t *)vector_first(call->msgs);
-        if (first->reqresp != SIP_METHOD_INVITE) 
-        {
-            exit(99);
-        }
-
-        from = first->sip_from;
-        to = first->sip_to;
-
-
-        init_time = msg_get_time(first);
-
-
-        vector_iter_t msgs_it = vector_iterator(call->msgs);
-        while (sip_msg_t* msg = (sip_msg_t*)vector_iterator_next(&msgs_it)) {
-            if (!ring_time && (msg->reqresp == 180 || msg->reqresp == 183)) {
-                ring_time = msg_get_time(msg);
-            }
-            if (!answer_time && (msg->reqresp == 200)) {
-                answer_time = msg_get_time(msg);
-            }
-            if (!hangup_time && (msg->reqresp == SIP_METHOD_BYE || msg->reqresp == SIP_METHOD_CANCEL || (msg->reqresp >= 400 && msg->reqresp < 600))) {
-                hangup_time = msg_get_time(msg);
-            }
-
-        }
-
-        src_ip = first->packet->src.ip;
-        src_port = std::to_string(first->packet->src.port);
-
-        dest_ip = first->packet->dst.ip;
-        dest_port = std::to_string(first->packet->dst.port);
-
-        /* ring_time = msg_get_time(call->cstart_msg); */
-        /* answer_time = msg_get_time(call->cstart_msg); */
-        /* hangup_time = msg_get_time(call->cstart_msg); */
-
-    }
+    explicit SipCall(struct sip_call * call);
 
     std::string call_id;
     call_state state;
