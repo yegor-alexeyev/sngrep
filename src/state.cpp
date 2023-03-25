@@ -83,7 +83,7 @@ SipCall::SipCall(struct sip_call * call)
         {
             b_rtp_ip = stream->media->address.ip;
             b_rtp_port = std::to_string(stream->media->address.port);
-            codec = media_get_prefered_format(stream->media);
+            codec = media_get_format(stream->media, stream->media->fmtcode);
         }
     }
 
