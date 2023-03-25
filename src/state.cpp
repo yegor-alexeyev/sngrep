@@ -39,6 +39,7 @@ RtpStream::RtpStream(rtp_stream_t *stream)
     m_port = std::to_string(stream->media->address.port);
     m_type = std::string(stream->media->type);
     m_fmtcode = std::to_string(stream->media->fmtcode);
+    m_format = media_get_format(stream->media, stream->media->fmtcode);
 
     if (!stream->media->msg)
     {
@@ -57,6 +58,33 @@ SipCall::SipCall(struct sip_call * call)
 
     while ( (stream = (rtp_stream_t*)vector_iterator_next(&streams_it))) {
         streams.emplace_back( stream );
+
+        if (!stream->media)
+        {
+            exit(100);
+        }
+        if (!stream->media->msg)
+        {
+            exit(101);
+        }
+
+        if (std::string(stream->media->type) != std::string("audio") ||
+            stream->type != PACKET_RTP
+           )
+        {
+            continue;
+        }
+        if (stream->media->msg->reqresp == SIP_METHOD_INVITE)
+        {
+            a_rtp_ip = stream->media->address.ip;
+            a_rtp_port = std::to_string(stream->media->address.port);
+        }
+        else
+        {
+            b_rtp_ip = stream->media->address.ip;
+            b_rtp_port = std::to_string(stream->media->address.port);
+            codec = media_get_prefered_format(stream->media);
+        }
     }
 
     sip_msg_t *first = (sip_msg_t *)vector_first(call->msgs);
@@ -253,6 +281,25 @@ std::string format_timestamp(const timeval& timestamp)
     return timestamp_stream.str();
 }
 
+
+
+template <typename T>
+void optionally_set_json_field(boost::json::object& object, const std::string& field_name, const std::optional<T>& value)
+{
+    if (value)
+    {
+        object[field_name] = *value;
+    }
+}
+
+void optionally_set_json_timeval_field(boost::json::object& object, const std::string& field_name, const std::optional<timeval>& value)
+{
+    if (value)
+    {
+        object[field_name] = format_timestamp(*value);
+    }
+}
+
 boost::json::value gather_leg_fields(const std::string& leg_id)
 {
     const auto sip_call_iterator = sip_calls.find(leg_id);
@@ -264,29 +311,21 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
     if (sip_call_iterator != sip_calls.end())
     {
         auto sip_call = sip_call_iterator->second;
+
+#define MAYBE_SET_SIP_CALL_JSON_FIELD(JSON_OBJECT, FIELD_NAME) \
+optionally_set_json_field(JSON_OBJECT, #FIELD_NAME, sip_call.FIELD_NAME)
+
         result_object["status"] = call_state_to_string(sip_call.state);
 
         result_object["init_time"] = format_timestamp(sip_call.init_time);
-        if (sip_call.ring_time)
-        {
-            result_object["ring_time"] = format_timestamp(*sip_call.ring_time);
-        }
-        if (sip_call.answer_time)
-        {
-            result_object["answer_time"] = format_timestamp(*sip_call.answer_time);
-        }
-        if (sip_call.hangup_time)
-        {
-            result_object["hangup_time"] = format_timestamp(*sip_call.hangup_time);
-        }
-        if (sip_call.from)
-        {
-            result_object["from"] = *sip_call.from;
-        }
-        if (sip_call.to)
-        {
-            result_object["to"] = *sip_call.to;
-        }
+
+        optionally_set_json_timeval_field(result_object, "ring_time", sip_call.ring_time);
+        optionally_set_json_timeval_field(result_object, "answer_time", sip_call.answer_time);
+        optionally_set_json_timeval_field(result_object, "hangup_time", sip_call.hangup_time);
+
+        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, from);
+        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, to);
+
 
         result_object["source_ip"] = sip_call.src_ip;
         result_object["source_port"] = sip_call.src_port;
@@ -294,6 +333,11 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
         result_object["destination_ip"] = sip_call.dest_ip;
         result_object["destination_port"] = sip_call.dest_port;
 
+        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, a_rtp_ip);
+        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, a_rtp_port);
+        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, b_rtp_ip);
+        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, b_rtp_port);
+        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, codec);
 
         boost::json::array streams_json;
         for (const auto& stream: sip_call.streams)
@@ -310,6 +354,7 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
             fields["m_port"] = stream.m_port;
             fields["m_type"] = stream.m_type;
             fields["m_fmtcode"] = stream.m_fmtcode;
+            fields["m_format"] = stream.m_format;
             fields["m_reqresp"] = stream.m_reqresp;
 
             streams_json.push_back( boost::json::value_from( fields ) );

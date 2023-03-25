@@ -49,6 +49,7 @@ struct RtpStream
     std::string m_port;
     std::string m_type;
     std::string m_fmtcode;
+    std::string m_format;
     std::string m_reqresp;
 };
 
@@ -81,6 +82,13 @@ struct SipCall
 
     std::string dest_ip;
     std::string dest_port;
+
+    std::optional<std::string> a_rtp_ip;
+    std::optional<std::string> a_rtp_port;
+
+    std::optional<std::string> b_rtp_ip;
+    std::optional<std::string> b_rtp_port;
+    std::optional<std::string> codec;
 };
 
 std::vector<std::string> read_file_as_lines(const std::string& filename);
