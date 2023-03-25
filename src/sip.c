@@ -656,8 +656,7 @@ sip_parse_msg_media(sip_msg_t *msg, const u_char *payload)
     }
 
     address_t dst, src = { };
-    rtp_stream_t *rtp_stream = NULL;
-    /* rtp_stream_t *rtp_stream = NULL, *rtcp_stream = NULL, *msg_rtp_stream = NULL; */
+    rtp_stream_t *rtp_stream = NULL, *rtcp_stream = NULL, *msg_rtp_stream = NULL;
     char media_type[MEDIATYPELEN + 1] = { };
     char media_format[30] = { };
     char address[ADDRESSLEN + 1] = { };
@@ -683,9 +682,9 @@ sip_parse_msg_media(sip_msg_t *msg, const u_char *payload)
             ||  sscanf(line, "m=%" STRINGIFY(MEDIATYPELEN) "s %hu UDP/%*s %u", media_type, &dst.port, &media_fmt_pref) == 3) {
 
                 // Add streams from previous 'm=' line to the call
-                /* ADD_STREAM(msg_rtp_stream); */
+                ADD_STREAM(msg_rtp_stream);
                 ADD_STREAM(rtp_stream);
-                /* ADD_STREAM(rtcp_stream); */
+                ADD_STREAM(rtcp_stream);
 
                 // Create a new media structure for this message
                 if ((media = media_create(msg))) {
@@ -702,16 +701,16 @@ sip_parse_msg_media(sip_msg_t *msg, const u_char *payload)
                     // Create a new stream with this destination address:port
 
                     // Create RTP stream with source of message as destination address
-                    /* msg_rtp_stream = stream_create(media, dst, PACKET_RTP); */
-                    /* msg_rtp_stream->dst = msg->packet->src; */
-                    /* msg_rtp_stream->dst.port = dst.port; */
+                    msg_rtp_stream = stream_create(media, dst, PACKET_RTP);
+                    msg_rtp_stream->dst = msg->packet->src;
+                    msg_rtp_stream->dst.port = dst.port;
 
                     // Create RTP stream
                     rtp_stream = stream_create(media, dst, PACKET_RTP);
 
                     // Create RTCP stream
-                    /* rtcp_stream = stream_create(media, dst, PACKET_RTCP); */
-                    /* rtcp_stream->dst.port++; */
+                    rtcp_stream = stream_create(media, dst, PACKET_RTCP);
+                    rtcp_stream->dst.port++;
                 }
             }
         }
@@ -723,7 +722,7 @@ sip_parse_msg_media(sip_msg_t *msg, const u_char *payload)
                 if (media) {
                     media_set_address(media, dst);
                     strcpy(rtp_stream->dst.ip, dst.ip);
-                    /* strcpy(rtcp_stream->dst.ip, dst.ip); */
+                    strcpy(rtcp_stream->dst.ip, dst.ip);
                 }
             }
         }
@@ -736,17 +735,17 @@ sip_parse_msg_media(sip_msg_t *msg, const u_char *payload)
         }
 
         // Check if we have attribute format RTCP port
-        /* if (!strncmp(line, "a=rtcp:", 7) && rtcp_stream) { */
-        /*     sscanf(line, "a=rtcp:%hu", &rtcp_stream->dst.port); */
-        /* } */
+        if (!strncmp(line, "a=rtcp:", 7) && rtcp_stream) {
+            sscanf(line, "a=rtcp:%hu", &rtcp_stream->dst.port);
+        }
 
 
     }
 
     // Add streams from last 'm=' line to the call
-    /* ADD_STREAM(msg_rtp_stream); */
+    ADD_STREAM(msg_rtp_stream);
     ADD_STREAM(rtp_stream);
-    /* ADD_STREAM(rtcp_stream); */
+    ADD_STREAM(rtcp_stream);
 
     sng_free(tofree);
 
