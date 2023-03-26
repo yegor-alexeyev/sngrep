@@ -186,14 +186,13 @@ Backlog classified_backlog;
 
 bool update_backlog(Backlog& backlog, const std::string& value)
 {
-    time_t time;
-    gmtime(&time);
+    time_t now = time(NULL);
 
-    const auto [it, is_inserted] = backlog.left.insert({value, time});
+    const auto [it, is_inserted] = backlog.left.insert({value, now});
 
     if (!is_inserted)
     {
-        backlog.left.replace_data(it, time);
+        backlog.left.replace_data(it, now);
     }
 
     return is_inserted;
@@ -201,24 +200,22 @@ bool update_backlog(Backlog& backlog, const std::string& value)
 
 void cleanup_telnet_backlog(Backlog& backlog)
 {
-    time_t time;
-    gmtime(&time);
+    time_t now = time(NULL);
 
-    while (!backlog.empty() && difftime(time, backlog.right.begin()->first) > 60*10)
+    while (!backlog.empty() && difftime(now, backlog.right.begin()->first) > 60*10)
     {
-        std::cout << "telneterased " << time << " " << unclassified_backlog.right.begin()->first;
+        /* std::cout << "telneterased " << time << " " << unclassified_backlog.right.begin()->first; */
         backlog.right.erase(backlog.right.begin());
     }
 }
 
 void cleanup_unclassified_backlog()
 {
-    time_t time;
-    gmtime(&time);
+    time_t now = time(NULL);
 
-    while (!unclassified_backlog.empty() && difftime(time, unclassified_backlog.right.begin()->first) > 60*20)
+    while (!unclassified_backlog.empty() && difftime(now, unclassified_backlog.right.begin()->first) > 60*20)
     {
-        std::cout << "unclerased " << time << " " << unclassified_backlog.right.begin()->first;
+        /* std::cout << "unclerased " << time << " " << unclassified_backlog.right.begin()->first; */
         const std::string callid = unclassified_backlog.right.begin()->second;
 
         auto maybe_ingress_leg = find_ingress_leg( callid);
@@ -244,13 +241,12 @@ void cleanup_single_call(const std::string& callid)
 
 void cleanup_classified_backlog()
 {
-    time_t time;
-    gmtime(&time);
+    time_t now = time(NULL);
 
-    while (!classified_backlog.empty() && difftime(time, classified_backlog.right.begin()->first) > 60*30)
+    while (!classified_backlog.empty() && difftime(now, classified_backlog.right.begin()->first) > 60*30)
     {
         const std::string ingress_callid = classified_backlog.right.begin()->second;
-        std::cout << "classberased " << time << " " << unclassified_backlog.right.begin()->first;
+        /* std::cout << "classberased " << time << " " << unclassified_backlog.right.begin()->first; */
 
         auto ingress_egress_subrange = egress_ingress_map.right.equal_range(ingress_callid);
         std::for_each(ingress_egress_subrange.first, ingress_egress_subrange.second, [](const auto& ingress_egress) {
