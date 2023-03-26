@@ -204,7 +204,7 @@ void cleanup_telnet_backlog(Backlog& backlog)
     time_t time;
     gmtime(&time);
 
-    while (!backlog.empty() && time - backlog.right.begin()->first > 60*10)
+    while (!backlog.empty() && difftime(time, backlog.right.begin()->first) > 60*10)
     {
         backlog.right.erase(backlog.right.begin());
     }
@@ -215,7 +215,7 @@ void cleanup_unclassified_backlog()
     time_t time;
     gmtime(&time);
 
-    while (!unclassified_backlog.empty() && time - unclassified_backlog.right.begin()->first > 60*20)
+    while (!unclassified_backlog.empty() && difftime(time, unclassified_backlog.right.begin()->first) > 60*20)
     {
         const std::string callid = unclassified_backlog.right.begin()->second;
 
@@ -245,7 +245,7 @@ void cleanup_classified_backlog()
     time_t time;
     gmtime(&time);
 
-    while (!classified_backlog.empty() && time - classified_backlog.right.begin()->first > 60*30)
+    while (!classified_backlog.empty() && difftime(time, classified_backlog.right.begin()->first) > 60*30)
     {
         const std::string ingress_callid = classified_backlog.right.begin()->second;
 
