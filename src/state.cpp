@@ -521,6 +521,7 @@ std::string update_state_from_class4(const std::string& input_line)
 std::vector<std::string> generate_update_message_list(const std::map<std::string, std::string>& filter)
 {
     std::vector<std::string> result;
+    std::set<std::string> uniques;
     /* for( auto it = egress_ingress_map.right.begin(); it != egress_ingress_map.right.end(); it = next_different_key(it, egress_ingress_map.right.end())) */
     for( auto& sip_call: sip_calls)
     {
@@ -528,10 +529,11 @@ std::vector<std::string> generate_update_message_list(const std::map<std::string
         if (!is_callid_filtered_out(sip_call.first, filter))
         {
             auto maybe_ingress_leg = find_ingress_leg( sip_call.first);
-            if (maybe_ingress_leg)
+            if (maybe_ingress_leg && uniques.count(*maybe_ingress_leg) == 0)
             {
                 const std::string update_message = prepare_sngrep_update(*maybe_ingress_leg);
                 result.push_back(update_message);
+                uniques.insert(*maybe_ingress_leg);
             }
         }
     }
