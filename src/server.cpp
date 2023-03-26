@@ -230,7 +230,7 @@ void process_message(SipCall& what, net::yield_context& yield)
             
 
             /* std::cout << "sent to websocket: " << update_message << "\n"; */
-            if (check_filter(*maybeIngressLegId, session.second.filter))
+            if (!is_callid_filtered_out(*maybeIngressLegId, session.second.filter))
             {
                 session.first->async_write(boost::asio::buffer(update_message), yield[ec]);
                 if(ec)
@@ -365,7 +365,7 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
         {
             beast::error_code ec;
             /* std::cout << "sent to websocket: " << update_message << "\n"; */
-            if (check_filter(ingress_callid, session.second.filter))
+            if (!is_callid_filtered_out(ingress_callid, session.second.filter))
                 session.first->write(boost::asio::buffer(update_message), ec);
         }
     }

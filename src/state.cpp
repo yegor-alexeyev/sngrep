@@ -98,7 +98,10 @@ SipCall::SipCall(struct sip_call * call)
     }
 
     from = first->sip_from;
+    ani = std::string(from.begin(), std::find(from.begin(), from.end(), '@'));
+
     to = first->sip_to;
+    dnis = std::string(to.begin(), std::find(to.begin(), to.end(), '@'));
 
 
     init_time = msg_get_time(first);
@@ -118,11 +121,11 @@ SipCall::SipCall(struct sip_call * call)
 
     }
 
-    src_ip = first->packet->src.ip;
-    src_port = std::to_string(first->packet->src.port);
+    source_ip = first->packet->src.ip;
+    source_port = std::to_string(first->packet->src.port);
 
-    dest_ip = first->packet->dst.ip;
-    dest_port = std::to_string(first->packet->dst.port);
+    destination_ip = first->packet->dst.ip;
+    destination_port = std::to_string(first->packet->dst.port);
 
     /* ring_time = msg_get_time(call->cstart_msg); */
     /* answer_time = msg_get_time(call->cstart_msg); */
@@ -210,25 +213,40 @@ Iterator next_different_key(const Iterator start, const Iterator end)
     return result;
 }
 
-bool check_filter_field(std::map<std::string, std::string> data, std::map<std::string, std::string> filter, const std::string&key)
+bool is_field_filtered_out(std::map<std::string, std::string> data, const std::string& key, const std::string value)
 {
-    if (filter.count(key) == 0)
-    {
-        return true;
-    }
-    if (data.count(key) == 0)
-    {
-        return false;
-    }
-    return data.at(key) == filter.at(key);
+    return data.count(key) && data.at(key) != value;
 }
 
-bool check_filter(const std::string& ingressId, std::map<std::string, std::string> filter)
+bool is_callid_filtered_out(const std::string& callId, std::map<std::string, std::string> filter)
 {
-    auto ingress_fields = class4_info[ingressId];
+    for (auto name_value: filter)
+    {
+        if (is_field_filtered_out(class4_info[callId], name_value.first, name_value.second))
+        {
+            return true;
+        }
+    }
+    if (!sip_calls.count(callId))
+    {
+        //TODO, we should also check if there are sngrep-side fields to be filtered on
+        return false;
+    }
 
-    return check_filter_field( ingress_fields, filter, "ingress_carrier")
-        && check_filter_field( ingress_fields, filter, "ingress_trunk");
+    SipCall& call = sip_calls.at(callId);
+
+#define CHECK_CALL_IS_FILTERED_OUT(FILTERS, FIELD) \
+if (is_field_filtered_out(FILTERS, #FIELD, call.FIELD)) { return true; }
+
+    CHECK_CALL_IS_FILTERED_OUT(filter, ani);
+    CHECK_CALL_IS_FILTERED_OUT(filter, dnis);
+    CHECK_CALL_IS_FILTERED_OUT(filter, from);
+    CHECK_CALL_IS_FILTERED_OUT(filter, source_ip);
+    CHECK_CALL_IS_FILTERED_OUT(filter, source_port);
+    CHECK_CALL_IS_FILTERED_OUT(filter, destination_ip);
+    CHECK_CALL_IS_FILTERED_OUT(filter, destination_port);
+
+    return false;
 }
 
 void update_state_from_sngrep(SipCall& sngrep_call)
@@ -327,15 +345,17 @@ optionally_set_json_field(JSON_OBJECT, #FIELD_NAME, sip_call.FIELD_NAME)
         optionally_set_json_timeval_field(result_object, "answer_time", sip_call.answer_time);
         optionally_set_json_timeval_field(result_object, "hangup_time", sip_call.hangup_time);
 
-        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, from);
-        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, to);
+        result_object["from"] = sip_call.from;
+        result_object["to"] = sip_call.to;
+        result_object["ani"] = sip_call.ani;
+        result_object["dnis"] = sip_call.dnis;
 
 
-        result_object["source_ip"] = sip_call.src_ip;
-        result_object["source_port"] = sip_call.src_port;
+        result_object["source_ip"] = sip_call.source_ip;
+        result_object["source_port"] = sip_call.source_port;
 
-        result_object["destination_ip"] = sip_call.dest_ip;
-        result_object["destination_port"] = sip_call.dest_port;
+        result_object["destination_ip"] = sip_call.destination_ip;
+        result_object["destination_port"] = sip_call.destination_port;
 
         MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, a_rtp_dest_ip);
         MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, a_rtp_dest_port);
@@ -485,13 +505,18 @@ std::string update_state_from_class4(const std::string& input_line)
 std::vector<std::string> generate_update_message_list(const std::map<std::string, std::string>& filter)
 {
     std::vector<std::string> result;
-    for( auto it = egress_ingress_map.right.begin(); it != egress_ingress_map.right.end(); it = next_different_key(it, egress_ingress_map.right.end()))
+    /* for( auto it = egress_ingress_map.right.begin(); it != egress_ingress_map.right.end(); it = next_different_key(it, egress_ingress_map.right.end())) */
+    for( auto& sip_call: sip_calls)
     {
         /* std::cout << "sent to websocket: " << update_message << "\n"; */
-        if (check_filter(it->first, filter))
+        if (is_callid_filtered_out(sip_call.first, filter))
         {
-            const std::string update_message = prepare_sngrep_update(it->first);
-            result.push_back(update_message);
+            auto maybe_ingress_leg = find_ingress_leg( sip_call.first);
+            if (maybe_ingress_leg)
+            {
+                const std::string update_message = prepare_sngrep_update(*maybe_ingress_leg);
+                result.push_back(update_message);
+            }
         }
     }
     return result;

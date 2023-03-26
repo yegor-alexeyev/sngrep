@@ -69,19 +69,21 @@ struct SipCall
     call_state state;
     std::vector<RtpStream> streams;
 
-    std::optional<std::string> from;
-    std::optional<std::string> to;
+    std::string from;
+    std::string to;
+    std::string ani;
+    std::string dnis;
     timeval init_time;
     std::optional<timeval> ring_time;
     std::optional<timeval> answer_time;
     std::optional<timeval> hangup_time;
 
 
-    std::string src_ip;
-    std::string src_port;
+    std::string source_ip;
+    std::string source_port;
 
-    std::string dest_ip;
-    std::string dest_port;
+    std::string destination_ip;
+    std::string destination_port;
 
     std::optional<std::string> a_rtp_dest_ip;
     std::optional<std::string> a_rtp_dest_port;
@@ -103,7 +105,7 @@ std::vector<std::string> init_class4_fields_list(const std::string& filename);
 std::set<std::string> vector_to_set(const std::vector<std::string> v);
 std::optional<std::string> find_ingress_leg(const std::string leg_id);
 
-bool check_filter(const std::string& ingressId, std::map<std::string, std::string> filter);
+bool is_callid_filtered_out(const std::string& ingressId, std::map<std::string, std::string> filter);
 void update_state_from_sngrep(SipCall& sngrep_call);
 bool has_class4_info(const std::string& callid);
 std::map<std::string, std::string> collect_string_members(std::string message);
