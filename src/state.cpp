@@ -170,6 +170,7 @@ typedef std::map<std::string, std::string> Class4Fields;
 typedef boost::bimap<boost::bimaps::set_of<std::string>, boost::bimaps::multiset_of<std::string> > EgressIngressMap;
 
 
+typedef boost::bimap< boost::bimaps::set_of<std::string>, boost::bimaps::multiset_of<time_t> > Backlog;
 
 typedef std::map<std::string, SipCall> SipCalls;
 typedef std::map<std::string, Class4Fields> Class4Info;
@@ -178,7 +179,92 @@ EgressIngressMap egress_ingress_map;
 
 SipCalls sip_calls;
 Class4Info class4_info;
+
+Backlog unclassified_backlog;
+Backlog classified_backlog;
 /////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool update_backlog(Backlog& backlog, const std::string& value)
+{
+    time_t time;
+    gmtime(&time);
+
+    const auto [it, is_inserted] = backlog.left.insert({value, time});
+
+    if (!is_inserted)
+    {
+        backlog.left.replace_data(it, time);
+    }
+
+    return is_inserted;
+}
+
+void cleanup_telnet_backlog(Backlog& backlog)
+{
+    time_t time;
+    gmtime(&time);
+
+    while (time - backlog.right.begin()->first > 60*10)
+    {
+        backlog.right.erase(backlog.right.begin());
+    }
+}
+
+void cleanup_unclassified_backlog()
+{
+    time_t time;
+    gmtime(&time);
+
+    while (time - unclassified_backlog.right.begin()->first > 60*20)
+    {
+        const std::string callid = unclassified_backlog.right.begin()->second;
+
+        auto maybe_ingress_leg = find_ingress_leg( callid);
+        if (!maybe_ingress_leg)
+        {
+            sip_calls.erase(callid);
+            class4_info.erase(callid);
+        }
+        /* if call is classified then it's subject to different cleanup procedure */
+
+        unclassified_backlog.right.erase(unclassified_backlog.right.begin());
+    }
+
+}
+
+void cleanup_single_call(const std::string& callid)
+{
+    sip_calls.erase(callid);
+    class4_info.erase(callid);
+    classified_backlog.left.erase(callid);
+    unclassified_backlog.left.erase(callid);
+}
+
+void cleanup_classified_backlog()
+{
+    time_t time;
+    gmtime(&time);
+
+    while (time - classified_backlog.right.begin()->first > 60*30)
+    {
+        const std::string ingress_callid = classified_backlog.right.begin()->second;
+
+        auto ingress_egress_subrange = egress_ingress_map.right.equal_range(ingress_callid);
+        std::for_each(ingress_egress_subrange.first, ingress_egress_subrange.second, [](const auto& ingress_egress) {
+            cleanup_single_call(ingress_egress.second);
+        });
+        cleanup_single_call(ingress_callid);
+    }
+
+}
+
+bool try_insert_to_telnet_backlog(const std::string& value)
+{
+    static Backlog backlog;
+
+    cleanup_telnet_backlog(backlog);
+    return update_backlog(backlog, value);
+}
 
 std::string call_state_to_string(call_state state)
 {
@@ -268,6 +354,18 @@ if (is_field_filtered_out(FILTERS, #FIELD, call.FIELD)) { return true; }
 void update_state_from_sngrep(SipCall& sngrep_call)
 {
     sip_calls.insert_or_assign( sngrep_call.call_id, sngrep_call );
+
+    
+
+    update_backlog(unclassified_backlog, sngrep_call.call_id);
+
+    auto maybeIngressLegId = find_ingress_leg( sngrep_call.call_id);
+    if (maybeIngressLegId) {
+        update_backlog(classified_backlog, *maybeIngressLegId);
+    }
+
+    cleanup_unclassified_backlog();
+    cleanup_classified_backlog();
 }
 
 bool has_class4_info(const std::string& call_id)
@@ -421,12 +519,12 @@ std::string prepare_sngrep_update(const std::string ingress_leg_id)
         egress_legs_json.push_back( gather_leg_fields( ingress_egress.second ) );
     });
 
-    boost::json::object state_message = {
-        {"ingress", gather_leg_fields( ingress_leg_id) },
-        {"egress", egress_legs_json }
-        /* {"egress", boost::json::array( boost::json::value_from( class4_info[ingress_leg_id] ) ) }, */
-        /* {"other", boost::json::value_from( egress_ingress_map.right.find(ingress_leg_id)->second ) } */
+    boost::json::object call_group_json = { 
+            {"ingress", gather_leg_fields( ingress_leg_id) },
+            {"egress", egress_legs_json }
     };
+
+    boost::json::object state_message = { { "callgroup", call_group_json } };
 
     return boost::json::serialize(state_message);
 }
@@ -506,14 +604,23 @@ std::string update_state_from_class4(const std::string& input_line)
         std::cout << "new class4 egress leg: " << ingress_callid << " " << egress_callid << "\n";
     }
 
+
     class4_info.insert_or_assign( egress_callid, egress_fields );
+    update_backlog(unclassified_backlog, egress_callid);
+
     class4_info.insert_or_assign( ingress_callid, ingress_fields );
+    update_backlog(unclassified_backlog, ingress_callid);
 
 /*         return fields.at("ingress_callid"); */
 
     egress_ingress_map.insert(EgressIngressMap::value_type(
          egress_callid ,  ingress_callid
     ));
+
+    update_backlog(classified_backlog, ingress_callid);
+
+    cleanup_unclassified_backlog();
+    cleanup_classified_backlog();
 
     return ingress_callid;
 }
@@ -540,25 +647,3 @@ std::vector<std::string> generate_update_message_list(const std::map<std::string
     return result;
 }
 
-bool try_insert_to_backlog(const std::string& value)
-{
-    typedef boost::bimap< boost::bimaps::set_of<std::string>, boost::bimaps::multiset_of<time_t> > Backlog;
-    static Backlog backlog;
-
-    time_t time;
-    gmtime(&time);
-
-    const auto [it, is_inserted] = backlog.left.insert({value, time});
-
-    if (!is_inserted)
-    {
-        backlog.left.replace_data(it, time);
-    }
-    
-    if (backlog.size() > 3000)
-    {
-        backlog.right.erase(backlog.right.begin());
-    }
-
-    return is_inserted;
-}

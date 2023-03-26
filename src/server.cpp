@@ -352,7 +352,7 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
         result.pop_back(); //remove question mark from the end of line
         result.pop_back(); //remove question mark from the end of line
 
-        if (!try_insert_to_backlog(result))
+        if (!try_insert_to_telnet_backlog(result))
         {
             //filter out duplicate lines
             continue;

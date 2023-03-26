@@ -114,6 +114,6 @@ std::string prepare_sngrep_update(const std::string ingress_leg_id);
 std::optional<std::string> find_ingress_leg(const std::string leg_id);
 std::string update_state_from_class4(const std::string& input_line);
 std::vector<std::string> generate_update_message_list(const std::map<std::string, std::string>& filter);
-bool try_insert_to_backlog(const std::string& value);
+bool try_insert_to_telnet_backlog(const std::string& value);
 
 #endif /* __SNGREP_STATE_H */
