@@ -509,7 +509,7 @@ std::vector<std::string> generate_update_message_list(const std::map<std::string
     for( auto& sip_call: sip_calls)
     {
         /* std::cout << "sent to websocket: " << update_message << "\n"; */
-        if (is_callid_filtered_out(sip_call.first, filter))
+        if (!is_callid_filtered_out(sip_call.first, filter))
         {
             auto maybe_ingress_leg = find_ingress_leg( sip_call.first);
             if (maybe_ingress_leg)
