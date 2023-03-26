@@ -206,6 +206,7 @@ void cleanup_telnet_backlog(Backlog& backlog)
 
     while (!backlog.empty() && difftime(time, backlog.right.begin()->first) > 60*10)
     {
+        std::cout << "telneterased " << time << " " << unclassified_backlog.right.begin()->first;
         backlog.right.erase(backlog.right.begin());
     }
 }
@@ -217,6 +218,7 @@ void cleanup_unclassified_backlog()
 
     while (!unclassified_backlog.empty() && difftime(time, unclassified_backlog.right.begin()->first) > 60*20)
     {
+        std::cout << "unclerased " << time << " " << unclassified_backlog.right.begin()->first;
         const std::string callid = unclassified_backlog.right.begin()->second;
 
         auto maybe_ingress_leg = find_ingress_leg( callid);
@@ -248,6 +250,7 @@ void cleanup_classified_backlog()
     while (!classified_backlog.empty() && difftime(time, classified_backlog.right.begin()->first) > 60*30)
     {
         const std::string ingress_callid = classified_backlog.right.begin()->second;
+        std::cout << "classberased " << time << " " << unclassified_backlog.right.begin()->first;
 
         auto ingress_egress_subrange = egress_ingress_map.right.equal_range(ingress_callid);
         std::for_each(ingress_egress_subrange.first, ingress_egress_subrange.second, [](const auto& ingress_egress) {
@@ -553,7 +556,7 @@ std::optional<std::string> find_ingress_leg(const std::string leg_id)
 std::string update_state_from_class4(const std::string& input_line)
 {
 
-    std::cout << "line: " << input_line << std::endl;
+    /* std::cout << "line: " << input_line << std::endl; */
 
 
 
