@@ -202,6 +202,17 @@ void process_message(ClientMessage& message, net::yield_context& yield)
                 //todo close client
             }
         }
+        if (message.command == "stats")
+        {
+            auto update_message = generate_stats(established_sessions.at(client).filter);
+
+            beast::error_code ec;
+            client->async_write(boost::asio::buffer(update_message), yield[ec]);
+            if (ec)
+            {
+                std::cout << "client write failure " << ec << std::endl;
+            }
+        }
     }
 }
 

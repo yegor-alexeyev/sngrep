@@ -625,6 +625,18 @@ std::string update_state_from_class4(const std::string& input_line)
     return ingress_callid;
 }
 
+std::string generate_stats(const std::map<std::string, std::string>& filter)
+{
+    const size_t count = generate_update_message_list(filter).size();
+
+    boost::json::object stats_json = { { "session_count", std::to_string(count) } };
+
+    boost::json::object state_message = { { "stats", stats_json } };
+
+    return boost::json::serialize(state_message);
+
+}
+
 std::vector<std::string> generate_update_message_list(const std::map<std::string, std::string>& filter)
 {
     std::vector<std::string> result;
