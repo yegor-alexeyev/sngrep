@@ -246,6 +246,22 @@ if (is_field_filtered_out(FILTERS, #FIELD, call.FIELD)) { return true; }
     CHECK_CALL_IS_FILTERED_OUT(filter, destination_ip);
     CHECK_CALL_IS_FILTERED_OUT(filter, destination_port);
 
+
+
+    auto maybe_ingress_leg = find_ingress_leg( callId);
+    if (!maybe_ingress_leg)
+    {
+        return true;
+    }
+
+    for (auto name_value: filter)
+    {
+        if (is_field_filtered_out(class4_info[*maybe_ingress_leg], name_value.first, name_value.second))
+        {
+            return true;
+        }
+    }
+
     return false;
 }
 
