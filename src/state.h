@@ -1,6 +1,5 @@
 #ifndef __SNGREP_STATE_H
 #define __SNGREP_STATE_H
-
 #include <boost/json/value_from.hpp>
 #include <boost/json/value_to.hpp>
 #include <boost/json/serialize.hpp>

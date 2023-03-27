@@ -25,8 +25,8 @@ sngrep_CFLAGS+=$(ZLIB_CFLAGS)
 sngrep_LDADD+=$(ZLIB_LIBS)
 endif
 sngrep_CXXFLAGS=-std=c++17
-sngrep_CXXFLAGS+=-I/home/egor/local/include
-sngrep_LDFLAGS=-L/home/egor/local/lib
+sngrep_CXXFLAGS+=-I/tmp/sngrep.server.build.local/include
+sngrep_LDFLAGS=-L/tmp/sngrep.server.build.local/lib
 sngrep_LDADD+=-l:libboost_coroutine.a
 sngrep_LDADD+=-l:libboost_json.a
 sngrep_LDADD+=-l:libboost_context.a
