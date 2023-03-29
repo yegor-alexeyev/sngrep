@@ -300,6 +300,10 @@ Iterator next_different_key(const Iterator start, const Iterator end)
 
 bool is_field_fuzzy_filtered_out(std::map<std::string, std::string> data, const std::string& key, std::string filter)
 {
+    if (data.count(key) == 0) 
+    {
+        return false;
+    }
     const std::string value  = data.at(key);
 
     if (filter.empty())
