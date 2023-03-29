@@ -298,9 +298,50 @@ Iterator next_different_key(const Iterator start, const Iterator end)
     return result;
 }
 
-bool is_field_filtered_out(std::map<std::string, std::string> data, const std::string& key, const std::string value)
+bool is_field_fuzzy_filtered_out(std::map<std::string, std::string> data, const std::string& key, std::string filter)
 {
-    return data.count(key) && data.at(key) != value;
+    const std::string value  = data.at(key);
+
+    if (filter.empty())
+    {
+        return !value.empty();
+    }
+    const std::string trimmed_filter  = boost::trim_copy_if(filter, [](char c) { return c == '*'; });
+    if (trimmed_filter.empty())
+    {
+        return false;
+    }
+
+    
+    if (filter.front() != '*' && filter.back() != '*')
+    {
+        return filter != value;
+    }
+
+    const size_t pos = value.find(trimmed_filter);
+
+    if (filter.front() == '*' && filter.back() == '*')
+    {
+        return pos == std::string::npos;
+    }
+
+    if (filter.front() == '*')
+    {
+        return pos == std::string::npos || pos + trimmed_filter.size() != value.size();
+    } 
+    else //(filter.back() == '*' )
+    {
+        return pos == std::string::npos;
+    }
+
+}
+
+
+
+bool is_field_filtered_out(std::map<std::string, std::string> data, const std::string& key, std::string filter)
+{
+
+    return data.count(key) && data.at(key) != filter;
 }
 
 bool is_callid_filtered_out(const std::string& callId, std::map<std::string, std::string> filter)
@@ -323,9 +364,13 @@ bool is_callid_filtered_out(const std::string& callId, std::map<std::string, std
 #define CHECK_CALL_IS_FILTERED_OUT(FILTERS, FIELD) \
 if (is_field_filtered_out(FILTERS, #FIELD, call.FIELD)) { return true; }
 
-    CHECK_CALL_IS_FILTERED_OUT(filter, ani);
-    CHECK_CALL_IS_FILTERED_OUT(filter, dnis);
+#define CHECK_CALL_IS_FUZZY_FILTERED_OUT(FILTERS, FIELD) \
+if (is_field_fuzzy_filtered_out(FILTERS, #FIELD, call.FIELD)) { return true; }
+
+    CHECK_CALL_IS_FUZZY_FILTERED_OUT(filter, ani);
+    CHECK_CALL_IS_FUZZY_FILTERED_OUT(filter, dnis);
     CHECK_CALL_IS_FILTERED_OUT(filter, from);
+    CHECK_CALL_IS_FILTERED_OUT(filter, to);
     CHECK_CALL_IS_FILTERED_OUT(filter, source_ip);
     CHECK_CALL_IS_FILTERED_OUT(filter, source_port);
     CHECK_CALL_IS_FILTERED_OUT(filter, destination_ip);
