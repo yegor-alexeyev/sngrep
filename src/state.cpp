@@ -298,13 +298,13 @@ Iterator next_different_key(const Iterator start, const Iterator end)
     return result;
 }
 
-bool is_field_fuzzy_filtered_out(std::map<std::string, std::string> data, const std::string& key, std::string filter)
+bool is_field_fuzzy_filtered_out(std::map<std::string, std::string> filters, const std::string& key, const std::string& value)
 {
-    if (data.count(key) == 0) 
+    if (filters.count(key) == 0) 
     {
         return false;
     }
-    const std::string value  = data.at(key);
+    const std::string filter  = filters.at(key);
 
     if (filter.empty())
     {
@@ -342,10 +342,10 @@ bool is_field_fuzzy_filtered_out(std::map<std::string, std::string> data, const 
 
 
 
-bool is_field_filtered_out(std::map<std::string, std::string> data, const std::string& key, std::string filter)
+bool is_field_filtered_out(std::map<std::string, std::string> filters, const std::string& key, std::string value)
 {
 
-    return data.count(key) && data.at(key) != filter;
+    return filters.count(key) && filters.at(key) != value;
 }
 
 bool is_callid_filtered_out(const std::string& callId, std::map<std::string, std::string> filter)
