@@ -27,6 +27,7 @@ extern "C" {
 #include "sip.h"
 #include "sip_msg.h"
 #include "sip_call.h"
+#include "setting.h"
 
 #ifdef __cplusplus
 }

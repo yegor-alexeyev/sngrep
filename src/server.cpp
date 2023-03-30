@@ -95,12 +95,18 @@ fail(beast::error_code ec, char const* what)
     std::cout << what << ": " << ec.message() << "\n";
 }
 
+std::optional<std::string> maybe_create_string(const char* ptr)
+{
+    return ptr && *ptr ? std::make_optional(ptr) : std::nullopt; 
+}
 
 void process_messages(
     std::map<WebsocketPtr, Session>::iterator session,
     net::yield_context yield)
 {
     boost::system::error_code ec;
+
+    std::optional<std::string> maybe_token = maybe_create_string(setting_get_value(SETTING_SERVER_WEBSOCKET_TOKEN));
 
     for(;;)
     {
@@ -127,18 +133,39 @@ void process_messages(
             return fail(ec, "invalid json: missing command attribute");
         }
 
+        if (members["command"] == "auth")
+        {
+            if (!maybe_token)
+            {
+                // do not allow to authenticate if authentication is not enabled
+                break;
+            }
+            if (!members.count("token"))
+            {
+                break;
+            }
+            if (members["token"] != maybe_token)
+            {
+                break;
+            }
+            maybe_token.reset();
+            continue;
+        }
+
+        if (maybe_token)
+        {
+            break;
+        }
+
 
         if (members["command"] == "subscribe")
         {
             session->second.filter = members;
             session->second.filter.erase("command");
-        }
-        else
-        {
-            sngrep_channel.try_send(boost::asio::error::eof, ClientMessage({session->first, members["command"] }));
+            continue;
         }
 
-
+        sngrep_channel.try_send(boost::asio::error::eof, ClientMessage({session->first, members["command"] }));
     }
 }
 
@@ -396,9 +423,19 @@ void server_thread()
 {
     std::set_terminate( terminate_handler );
     std::atexit( exit_handler );
+    const char* listen_address = setting_get_value(SETTING_SERVER_WEBSOCKET_PORT);
+    int listen_port = setting_get_intvalue(SETTING_SERVER_WEBSOCKET_PORT);
+    if (listen_address == NULL)
+    {
+        exit(88);
+    }
+    if (listen_port == -1)
+    {
+        exit(89);
+    }
 
-    auto const address = net::ip::make_address("0.0.0.0");
-    auto const port = static_cast<unsigned short>(8080);
+    auto const address = net::ip::make_address(listen_address);
+    auto const port = static_cast<unsigned short>(listen_port);
 
     // Spawns an active call script processor
     boost::asio::spawn(context,

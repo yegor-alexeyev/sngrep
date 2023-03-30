@@ -212,8 +212,13 @@ void cleanup_telnet_backlog(Backlog& backlog)
 void cleanup_unclassified_backlog()
 {
     time_t now = time(NULL);
+    int timeout = setting_get_intvalue(SETTING_SERVER_WEBSOCKET_UNCLASSIFIED_LIFETIME);
+    if (timeout < 0)
+    {
+        exit(100);
+    }
 
-    while (!unclassified_backlog.empty() && difftime(now, unclassified_backlog.right.begin()->first) > 60*20)
+    while (!unclassified_backlog.empty() && difftime(now, unclassified_backlog.right.begin()->first) > timeout)
     {
         /* std::cout << "unclerased " << time << " " << unclassified_backlog.right.begin()->first; */
         const std::string callid = unclassified_backlog.right.begin()->second;
@@ -243,7 +248,13 @@ void cleanup_classified_backlog()
 {
     time_t now = time(NULL);
 
-    while (!classified_backlog.empty() && difftime(now, classified_backlog.right.begin()->first) > 60*30)
+    int timeout = setting_get_intvalue(SETTING_SERVER_WEBSOCKET_CLASSIFIED_LIFETIME);
+    if (timeout < 0)
+    {
+        exit(101);
+    }
+
+    while (!classified_backlog.empty() && difftime(now, classified_backlog.right.begin()->first) > timeout)
     {
         const std::string ingress_callid = classified_backlog.right.begin()->second;
         /* std::cout << "classberased " << time << " " << unclassified_backlog.right.begin()->first; */
@@ -532,27 +543,27 @@ optionally_set_json_field(JSON_OBJECT, #FIELD_NAME, sip_call.FIELD_NAME)
         result_object["b_rtp_payload_bytes"] = sip_call.b_rtp_payload_bytes;
 
         boost::json::array streams_json;
-        for (const auto& stream: sip_call.streams)
-        {
-            std::map<std::string, std::string> fields;
-            fields["count"] = std::to_string(stream.count);
-            fields["type"] = std::to_string(stream.type);
-            fields["src_ip"] = stream.src_ip;
-            fields["src_port"] = std::to_string(stream.src_port);
-            fields["dest_ip"] = stream.dest_ip;
-            fields["dest_port"] = std::to_string(stream.dest_port);
+        /* for (const auto& stream: sip_call.streams) */
+        /* { */
+        /*     std::map<std::string, std::string> fields; */
+        /*     fields["count"] = std::to_string(stream.count); */
+        /*     fields["type"] = std::to_string(stream.type); */
+        /*     fields["src_ip"] = stream.src_ip; */
+        /*     fields["src_port"] = std::to_string(stream.src_port); */
+        /*     fields["dest_ip"] = stream.dest_ip; */
+        /*     fields["dest_port"] = std::to_string(stream.dest_port); */
 
-            fields["m_ip"] = stream.m_ip;
-            fields["m_port"] = stream.m_port;
-            fields["m_type"] = stream.m_type;
-            fields["m_fmtcode"] = stream.m_fmtcode;
-            fields["m_format"] = stream.m_format;
-            fields["m_reqresp"] = stream.m_reqresp;
+        /*     fields["m_ip"] = stream.m_ip; */
+        /*     fields["m_port"] = stream.m_port; */
+        /*     fields["m_type"] = stream.m_type; */
+        /*     fields["m_fmtcode"] = stream.m_fmtcode; */
+        /*     fields["m_format"] = stream.m_format; */
+        /*     fields["m_reqresp"] = stream.m_reqresp; */
 
-            streams_json.push_back( boost::json::value_from( fields ) );
-        }
+        /*     streams_json.push_back( boost::json::value_from( fields ) ); */
+        /* } */
 
-        result_object["streams"] = streams_json;
+        /* result_object["streams"] = streams_json; */
     }
     return result;
 
