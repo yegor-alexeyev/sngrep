@@ -423,7 +423,7 @@ void server_thread()
 {
     std::set_terminate( terminate_handler );
     std::atexit( exit_handler );
-    const char* listen_address = setting_get_value(SETTING_SERVER_WEBSOCKET_PORT);
+    const char* listen_address = setting_get_value(SETTING_SERVER_WEBSOCKET_ADDRESS);
     int listen_port = setting_get_intvalue(SETTING_SERVER_WEBSOCKET_PORT);
     if (listen_address == NULL)
     {
