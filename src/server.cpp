@@ -450,8 +450,7 @@ void
 do_active_call_processor( net::io_context& ioc, net::yield_context yield)
 {
     boost::system::error_code ec;
-    call_processor = boost::process::v2::popen(ioc, "get_active_call.expect", {});
-
+    call_processor = boost::process::v2::popen(ioc, "get_active_call.expect", {setting_get_value(SETTING_CLASS4_FIELDS)});
 
     std::string buf;
     while (true)
@@ -506,6 +505,9 @@ void server_thread()
     std::atexit( exit_handler );
     const char* listen_address = setting_get_value(SETTING_SERVER_WEBSOCKET_ADDRESS);
     int listen_port = setting_get_intvalue(SETTING_SERVER_WEBSOCKET_PORT);
+
+    init_state();
+
     if (listen_address == NULL)
     {
         exit(88);

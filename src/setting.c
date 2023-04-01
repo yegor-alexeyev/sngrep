@@ -97,6 +97,9 @@ setting_t settings[SETTING_COUNT] = {
     { SETTING_EEP_LISTEN_PASS,    "eep.listen.pass",    SETTING_FMT_STRING,  "",          NULL },
     { SETTING_EEP_LISTEN_UUID,    "eep.listen.uuid",    SETTING_FMT_ENUM,    SETTING_OFF, SETTING_ENUM_ONOFF },
 #endif
+    { SETTING_CLASS4_FIELDS,   "server.class4.fields",   SETTING_FMT_STRING,  "",  NULL },
+    { SETTING_CLASS4_INGRESS_FIELDS, "server.class4.ingress.fields",   SETTING_FMT_STRING,  "",  NULL },
+    { SETTING_CLASS4_EGRESS_FIELDS, "server.class4.egress.fields",   SETTING_FMT_STRING,  "",  NULL },
     { SETTING_SERVER_WEBSOCKET_ADDRESS,   "server.websocket.address",   SETTING_FMT_STRING,  "0.0.0.0",  NULL },
     { SETTING_SERVER_WEBSOCKET_PORT,      "server.websocket.port",      SETTING_FMT_NUMBER,  "8080",      NULL },
     { SETTING_SERVER_WEBSOCKET_TOKEN,     "server.websocket.token",      SETTING_FMT_STRING,  "",      NULL },

@@ -20,6 +20,7 @@
 #include <functional>
 #include <iomanip>
 
+
 RtpStream::RtpStream(rtp_stream_t *stream)
 {
 
@@ -161,9 +162,9 @@ std::set<std::string> vector_to_set(const std::vector<std::string> v)
     return std::set<std::string>(v.begin(), v.end());
 }
 
-std::vector<std::string> class4_fields = init_class4_fields_list("etc/class4_fields");
-std::set<std::string> ingress_class4_fields = vector_to_set(read_file_as_lines("etc/ingress_class4_fields"));
-std::set<std::string> egress_class4_fields = vector_to_set(read_file_as_lines("etc/egress_class4_fields"));
+std::vector<std::string> class4_fields;
+std::set<std::string> ingress_class4_fields;
+std::set<std::string> egress_class4_fields;
 
 typedef std::map<std::string, std::string> Class4Fields;
 
@@ -183,6 +184,23 @@ Class4Info class4_info;
 Backlog unclassified_backlog;
 Backlog classified_backlog;
 /////////////////////////////////////////////////////////////////////////////////////////////////
+std::string get_string_setting(int id)
+{
+    const char* value = setting_get_value(id);
+    if (!value)
+    {
+        exit(888);
+    }
+    return std::string(value);
+
+}
+void init_state()
+{
+    boost::split(class4_fields, setting_get_value(SETTING_CLASS4_FIELDS), boost::algorithm::is_any_of(","));
+    boost::split(ingress_class4_fields, setting_get_value(SETTING_CLASS4_INGRESS_FIELDS), boost::algorithm::is_any_of(","));
+    boost::split(egress_class4_fields, setting_get_value(SETTING_CLASS4_EGRESS_FIELDS), boost::algorithm::is_any_of(","));
+}
+
 
 bool update_backlog(Backlog& backlog, const std::string& value)
 {

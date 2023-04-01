@@ -124,5 +124,6 @@ std::string update_state_from_class4(const std::string& input_line);
 std::vector<std::string> generate_update_message_list(const Filter& filter);
 std::string generate_stats(const Filter& filter);
 bool try_insert_to_telnet_backlog(const std::string& value);
+void init_state();
 
 #endif /* __SNGREP_STATE_H */
