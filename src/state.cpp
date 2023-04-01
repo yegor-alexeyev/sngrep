@@ -197,6 +197,8 @@ std::string get_string_setting(int id)
 void init_state()
 {
     boost::split(class4_fields, setting_get_value(SETTING_CLASS4_FIELDS), boost::algorithm::is_any_of(","));
+    class4_fields.insert(class4_fields.begin(), "UUID_special");
+
     boost::split(ingress_class4_fields, setting_get_value(SETTING_CLASS4_INGRESS_FIELDS), boost::algorithm::is_any_of(","));
     boost::split(egress_class4_fields, setting_get_value(SETTING_CLASS4_EGRESS_FIELDS), boost::algorithm::is_any_of(","));
 }
