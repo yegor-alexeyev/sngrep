@@ -97,6 +97,8 @@ setting_t settings[SETTING_COUNT] = {
     { SETTING_EEP_LISTEN_PASS,    "eep.listen.pass",    SETTING_FMT_STRING,  "",          NULL },
     { SETTING_EEP_LISTEN_UUID,    "eep.listen.uuid",    SETTING_FMT_ENUM,    SETTING_OFF, SETTING_ENUM_ONOFF },
 #endif
+    { SETTING_CLASS4_ADDRESS,   "server.class4.address",   SETTING_FMT_STRING,  "",  NULL },
+    { SETTING_CLASS4_PORT,      "server.class4.port",      SETTING_FMT_NUMBER,  "0",      NULL },
     { SETTING_CLASS4_FIELDS,   "server.class4.fields",   SETTING_FMT_STRING,  "",  NULL },
     { SETTING_CLASS4_INGRESS_FIELDS, "server.class4.ingress.fields",   SETTING_FMT_STRING,  "",  NULL },
     { SETTING_CLASS4_EGRESS_FIELDS, "server.class4.egress.fields",   SETTING_FMT_STRING,  "",  NULL },

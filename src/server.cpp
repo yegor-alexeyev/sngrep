@@ -450,7 +450,7 @@ void
 do_active_call_processor( net::io_context& ioc, net::yield_context yield)
 {
     boost::system::error_code ec;
-    call_processor = boost::process::v2::popen(ioc, "get_active_call.expect", {setting_get_value(SETTING_CLASS4_FIELDS)});
+    call_processor = boost::process::v2::popen(ioc, "get_active_call.expect", {setting_get_value(SETTING_CLASS4_FIELDS), setting_get_value(SETTING_CLASS4_ADDRESS),setting_get_value(SETTING_CLASS4_PORT)});
 
     std::string buf;
     while (true)
