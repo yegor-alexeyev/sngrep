@@ -101,13 +101,77 @@ std::optional<std::string> maybe_create_string(const char* ptr)
     return ptr && *ptr ? std::make_optional(ptr) : std::nullopt; 
 }
 
+bool process_auth(
+    const WebsocketPtr& ws,
+    net::yield_context yield)
+{
+    boost::system::error_code ec;
+    if (setting_get_value(SETTING_SERVER_WEBSOCKET_TOKEN) == nullptr)
+    {
+        return true;
+    }
+
+    std::string token(setting_get_value(SETTING_SERVER_WEBSOCKET_TOKEN));
+    if (token.empty())
+    {
+        return true;
+    }
+
+    // This buffer will hold the incoming message
+    beast::flat_buffer buffer;
+
+    // Read a message
+    ws->async_read(buffer, yield[ec]);
+
+    if(ec)
+        return false;
+
+    const std::string message = beast::buffers_to_string(buffer.data());
+
+
+    boost::json::value jv = boost::json::parse( message, ec );
+
+    if( ec )
+    {
+        return false;
+    }
+
+    if (!jv.is_object())
+    {
+        return false;
+    }
+
+    const boost::json::object& jo = jv.as_object();
+
+    std::map<std::string, std::string> members = collect_string_members(jo);
+
+    if (members.count("command") == 0)
+    {
+        return false;
+    }
+
+    if (members["command"] != "auth")
+    {
+        return false;
+    }
+
+    if (!members.count("token"))
+    {
+        return false;
+    }
+    if (members["token"] != token)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 void process_messages(
     std::map<WebsocketPtr, Session>::iterator session,
     net::yield_context yield)
 {
     boost::system::error_code ec;
-
-    std::optional<std::string> maybe_token = maybe_create_string(setting_get_value(SETTING_SERVER_WEBSOCKET_TOKEN));
 
     for(;;)
     {
@@ -150,28 +214,8 @@ void process_messages(
 
         if (members["command"] == "auth")
         {
-            if (!maybe_token)
-            {
-                // do not allow to authenticate if authentication is not enabled
-                break;
-            }
-            if (!members.count("token"))
-            {
-                break;
-            }
-            if (members["token"] != maybe_token)
-            {
-                break;
-            }
-            maybe_token.reset();
-            continue;
+            return fail(ec, "unexpected auth command");
         }
-
-        if (maybe_token)
-        {
-            break;
-        }
-
 
         if (members["command"] == "subscribe")
         {
@@ -231,6 +275,10 @@ do_session(
     if(ec)
         return fail(ec, "accept");
 
+    if (!process_auth(ws, yield))
+    {
+        return fail(ec, "unauthenticated");
+    }
 
     auto session_it = established_sessions.try_emplace(ws, Session({ }) ).first;
 
