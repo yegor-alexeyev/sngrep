@@ -33,6 +33,12 @@ extern "C" {
 }
 #endif
 
+struct Filter
+{
+    std::map<std::string, std::string> ingress;
+    std::map<std::string, std::string> egress;
+};
+
 struct RtpStream
 {
     explicit RtpStream(rtp_stream_t *stream);
@@ -105,16 +111,18 @@ std::vector<std::string> init_class4_fields_list(const std::string& filename);
 std::set<std::string> vector_to_set(const std::vector<std::string> v);
 std::optional<std::string> find_ingress_leg(const std::string leg_id);
 
-bool is_callid_filtered_out(const std::string& ingressId, std::map<std::string, std::string> filter);
+bool is_call_filtered_out(const std::string& ingressId, const Filter& filter);
 void update_state_from_sngrep(SipCall& sngrep_call);
 bool has_class4_info(const std::string& callid);
-std::map<std::string, std::string> collect_string_members(std::string message);
+std::map<std::string, std::string> collect_string_members(const boost::json::object& jo);
 boost::json::value gather_leg_fields(const std::string& leg_id);
 std::string prepare_sngrep_update(const std::string ingress_leg_id);
 std::optional<std::string> find_ingress_leg(const std::string leg_id);
 std::string update_state_from_class4(const std::string& input_line);
-std::vector<std::string> generate_update_message_list(const std::map<std::string, std::string>& filter);
-std::string generate_stats(const std::map<std::string, std::string>& filter);
+
+
+std::vector<std::string> generate_update_message_list(const Filter& filter);
+std::string generate_stats(const Filter& filter);
 bool try_insert_to_telnet_backlog(const std::string& value);
 
 #endif /* __SNGREP_STATE_H */

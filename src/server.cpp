@@ -79,9 +79,10 @@ MessageChannel sngrep_channel(context, 100);
 
 /* typedef std::shared_ptr<SipCallData> SipCallDataPtr; */
 
+
 struct Session
 {
-    std::map<std::string, std::string> filter;
+    Filter filter;
 };
 
 std::map<WebsocketPtr, Session> established_sessions;
@@ -126,7 +127,21 @@ void process_messages(
         const std::string message = beast::buffers_to_string(buffer.data());
 
 
-        std::map<std::string, std::string> members = collect_string_members(message);
+        boost::json::value jv = boost::json::parse( message, ec );
+
+        if( ec )
+        {
+            return fail(ec, "invalid json: parsing failed");
+        }
+
+        if (!jv.is_object())
+        {
+            return fail(ec, "invalid json: root is not object");
+        }
+
+        const boost::json::object& jo = jv.as_object();
+
+        std::map<std::string, std::string> members = collect_string_members(jo);
 
         if (members.count("command") == 0)
         {
@@ -160,8 +175,26 @@ void process_messages(
 
         if (members["command"] == "subscribe")
         {
-            session->second.filter = members;
-            session->second.filter.erase("command");
+            if (jo.contains("ingress") && jo.at("ingress").is_object())
+            {
+                boost::json::object obj = jo.at("ingress").as_object();
+
+                session->second.filter.ingress = collect_string_members(obj);
+            } else
+            {
+                session->second.filter.ingress.clear();
+            }
+
+            if (jo.contains("egress") && jo.at("egress").is_object())
+            {
+                boost::json::object obj = jo.at("egress").as_object();
+
+                session->second.filter.egress = collect_string_members(obj);
+            } else
+            {
+                session->second.filter.egress.clear();
+            }
+
             continue;
         }
 
@@ -268,7 +301,7 @@ void process_message(SipCall& what, net::yield_context& yield)
             
 
             /* std::cout << "sent to websocket: " << update_message << "\n"; */
-            if (!is_callid_filtered_out(*maybeIngressLegId, session.second.filter))
+            if (!is_call_filtered_out(*maybeIngressLegId, session.second.filter))
             {
                 session.first->async_write(boost::asio::buffer(update_message), yield[ec]);
                 if(ec)
@@ -403,7 +436,7 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
         {
             beast::error_code ec;
             /* std::cout << "sent to websocket: " << update_message << "\n"; */
-            if (!is_callid_filtered_out(ingress_callid, session.second.filter))
+            if (!is_call_filtered_out(ingress_callid, session.second.filter))
                 session.first->write(boost::asio::buffer(update_message), ec);
         }
     }

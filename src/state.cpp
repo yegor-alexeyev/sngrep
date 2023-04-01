@@ -359,8 +359,13 @@ bool is_field_filtered_out(std::map<std::string, std::string> filters, const std
     return filters.count(key) && filters.at(key) != value;
 }
 
-bool is_callid_filtered_out(const std::string& callId, std::map<std::string, std::string> filter)
+bool is_call_side_filtered_out(const std::string& callId, const std::map<std::string, std::string>& filter)
 {
+    if (filter.empty())
+    {
+        return false;
+    }
+
     for (auto name_value: filter)
     {
         if (is_field_filtered_out(class4_info[callId], name_value.first, name_value.second))
@@ -370,8 +375,8 @@ bool is_callid_filtered_out(const std::string& callId, std::map<std::string, std
     }
     if (!sip_calls.count(callId))
     {
-        //TODO, we should also check if there are sngrep-side fields to be filtered on
-        return false;
+        //TODO, missing classified calls without sngrep-side info available yet
+        return true;
     }
 
     SipCall& call = sip_calls.at(callId);
@@ -392,6 +397,7 @@ if (is_field_fuzzy_filtered_out(FILTERS, #FIELD, call.FIELD)) { return true; }
     CHECK_CALL_IS_FILTERED_OUT(filter, destination_port);
 
 
+/*
 
     auto maybe_ingress_leg = find_ingress_leg( callId);
     if (!maybe_ingress_leg)
@@ -407,6 +413,7 @@ if (is_field_fuzzy_filtered_out(FILTERS, #FIELD, call.FIELD)) { return true; }
         }
     }
 
+*/
     return false;
 }
 
@@ -432,35 +439,15 @@ bool has_class4_info(const std::string& call_id)
     return class4_info.count(call_id) > 0;
 }
 
-std::map<std::string, std::string> collect_string_members(std::string message)
+std::map<std::string, std::string> collect_string_members(const boost::json::object& jo)
 {
-    boost::system::error_code ec;
-
     std::map<std::string, std::string> result;
 
-    boost::json::value jv = boost::json::parse( message, ec );
-    if( ec )
-    {
-        std::cout << "invalid json: parsing failed" << "\n";
-        return result;
-    }
-
-    if (!jv.is_object())
-    {
-        std::cout << "invalid json: root is not object" << "\n";
-        return result;
-    }
-
-    boost::json::object jo = jv.as_object();
     for (auto kvp: jo)
     {
         if (kvp.value().is_string())
         {
             result[kvp.key()] = kvp.value().as_string();
-        }
-        else
-        {
-            std::cout << "invalid object member " << kvp.key() << "\n";
         }
     }
     return result;
@@ -684,7 +671,7 @@ std::string update_state_from_class4(const std::string& input_line)
     return ingress_callid;
 }
 
-std::string generate_stats(const std::map<std::string, std::string>& filter)
+std::string generate_stats(const Filter& filter)
 {
     const size_t count = generate_update_message_list(filter).size();
 
@@ -696,25 +683,39 @@ std::string generate_stats(const std::map<std::string, std::string>& filter)
 
 }
 
-std::vector<std::string> generate_update_message_list(const std::map<std::string, std::string>& filter)
+bool is_call_filtered_out(const std::string& ingress_call_id, const Filter& filter)
 {
-    std::vector<std::string> result;
-    std::set<std::string> uniques;
-    /* for( auto it = egress_ingress_map.right.begin(); it != egress_ingress_map.right.end(); it = next_different_key(it, egress_ingress_map.right.end())) */
-    for( auto& sip_call: sip_calls)
+
+    if (is_call_side_filtered_out(ingress_call_id, filter.ingress))
     {
-        /* std::cout << "sent to websocket: " << update_message << "\n"; */
-        if (!is_callid_filtered_out(sip_call.first, filter))
+        return true;
+    }
+
+    auto ingress_egress_subrange = egress_ingress_map.right.equal_range(ingress_call_id);
+
+    for( auto ingress_egress_it = ingress_egress_subrange.first; ingress_egress_it != ingress_egress_subrange.second; ingress_egress_it++)
+    {
+        if (is_call_side_filtered_out(ingress_egress_it->second, filter.egress))
         {
-            auto maybe_ingress_leg = find_ingress_leg( sip_call.first);
-            if (maybe_ingress_leg && uniques.count(*maybe_ingress_leg) == 0)
-            {
-                const std::string update_message = prepare_sngrep_update(*maybe_ingress_leg);
-                result.push_back(update_message);
-                uniques.insert(*maybe_ingress_leg);
-            }
+            return true;
         }
     }
+
+    return false;
+}
+
+std::vector<std::string> generate_update_message_list(const Filter& filter)
+{
+    std::vector<std::string> result;
+    for( auto ingress_egress_it = egress_ingress_map.right.begin(); ingress_egress_it != egress_ingress_map.right.end(); ingress_egress_it = next_different_key(ingress_egress_it, egress_ingress_map.right.end()))
+    {
+        if (!is_call_filtered_out(ingress_egress_it->first, filter))
+        {
+            const std::string update_message = prepare_sngrep_update(ingress_egress_it->first);
+            result.push_back(update_message);
+        }
+    }
+
     return result;
 }
 
