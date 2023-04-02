@@ -232,7 +232,7 @@ void cleanup_telnet_backlog(Backlog& backlog)
 void cleanup_unclassified_backlog()
 {
     time_t now = time(NULL);
-    int timeout = setting_get_intvalue(SETTING_SERVER_WEBSOCKET_UNCLASSIFIED_LIFETIME);
+    int timeout = setting_get_intvalue(SETTING_SERVER_UNCLASSIFIED_LIFETIME);
     if (timeout < 0)
     {
         exit(100);
@@ -268,7 +268,7 @@ void cleanup_classified_backlog()
 {
     time_t now = time(NULL);
 
-    int timeout = setting_get_intvalue(SETTING_SERVER_WEBSOCKET_CLASSIFIED_LIFETIME);
+    int timeout = setting_get_intvalue(SETTING_SERVER_CLASSIFIED_LIFETIME);
     if (timeout < 0)
     {
         exit(101);

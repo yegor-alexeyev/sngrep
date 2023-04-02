@@ -290,6 +290,21 @@ do_session(
 
 //------------------------------------------------------------------------------
 
+void send_list_to_client(WebsocketPtr client, net::yield_context& yield)
+{
+    auto list_of_messages = generate_update_message_list(established_sessions.at(client).filter);
+    for ( const std::string& update_message: list_of_messages)
+    {
+        beast::error_code ec;
+        client->async_write(boost::asio::buffer(update_message), yield[ec]);
+        if (ec)
+        {
+            std::cout << "client write failure " << ec << std::endl;
+            return;
+        }
+        //todo close client
+    }
+}
 
 void process_message(ClientMessage& message, net::yield_context& yield)
 {
@@ -298,17 +313,7 @@ void process_message(ClientMessage& message, net::yield_context& yield)
     {
         if (message.command == "list")
         {
-            auto list_of_messages = generate_update_message_list(established_sessions.at(client).filter);
-            for ( const std::string& update_message: list_of_messages)
-            {
-                beast::error_code ec;
-                client->async_write(boost::asio::buffer(update_message), yield[ec]);
-                if (ec)
-                {
-                    std::cout << "client write failure " << ec << std::endl;
-                }
-                //todo close client
-            }
+            send_list_to_client(client, yield);
         }
         if (message.command == "stats")
         {
@@ -364,6 +369,33 @@ void process_message(SipCall& what, net::yield_context& yield)
     }
 }
 
+void do_periodic_update(net::yield_context yield)
+{
+    int interval_milliseconds = setting_get_intvalue(SETTING_SERVER_PERIODIC_UPDATE_INTERVAL_MILLISECONDS);
+    if (interval_milliseconds <= 0)
+    {
+        return;
+    }
+
+    boost::system::error_code ec;
+
+    boost::asio::steady_timer timer(context);
+    auto now = std::chrono::steady_clock::now();
+    while (true)
+    {
+        timer.expires_after(std::chrono::milliseconds(interval_milliseconds));
+        timer.async_wait(yield[ec]);
+        if (ec)
+        {
+            exit(777);
+        }
+        for ( auto session: established_sessions)
+        {
+            send_list_to_client(session.first, yield);
+        }
+    }
+    throw std::system_error(std::make_error_code(std::errc::timed_out));   
+}
 void do_multiplex(net::yield_context yield)
 {
 
@@ -537,6 +569,11 @@ void server_thread()
     boost::asio::spawn(context,
         std::bind(
             &do_multiplex, std::placeholders::_1));
+
+    //spawn a periodic update
+    boost::asio::spawn(context,
+        std::bind(
+            &do_periodic_update, std::placeholders::_1));
 
     context.run();
 
