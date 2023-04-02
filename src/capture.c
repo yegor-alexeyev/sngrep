@@ -987,7 +987,11 @@ capture_packet_parse(packet_t *packet)
             // Store this pacekt if capture rtp is enabled
             if (capture_cfg.rtp_capture) {
                 call_add_rtp_packet(stream_get_call(stream), packet);
-                on_new_rtp_packet(stream);
+            }
+
+            on_new_rtp_packet(stream);
+
+            if (capture_cfg.rtp_capture) {
                 return 0;
             }
         }
