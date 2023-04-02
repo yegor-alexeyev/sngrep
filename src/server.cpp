@@ -290,9 +290,9 @@ do_session(
 
 //------------------------------------------------------------------------------
 
-void send_list_to_client(WebsocketPtr client, net::yield_context& yield)
+void send_list_to_client(WebsocketPtr client, net::yield_context& yield, bool only_active)
 {
-    auto list_of_messages = generate_update_message_list(established_sessions.at(client).filter);
+    auto list_of_messages = generate_update_message_list(established_sessions.at(client).filter, only_active);
     for ( const std::string& update_message: list_of_messages)
     {
         beast::error_code ec;
@@ -313,7 +313,7 @@ void process_message(ClientMessage& message, net::yield_context& yield)
     {
         if (message.command == "list")
         {
-            send_list_to_client(client, yield);
+            send_list_to_client(client, yield, false);
         }
         if (message.command == "stats")
         {
@@ -391,7 +391,7 @@ void do_periodic_update(net::yield_context yield)
         }
         for ( auto session: established_sessions)
         {
-            send_list_to_client(session.first, yield);
+            send_list_to_client(session.first, yield, true);
         }
     }
     throw std::system_error(std::make_error_code(std::errc::timed_out));   

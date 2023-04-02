@@ -693,7 +693,7 @@ std::string update_state_from_class4(const std::string& input_line)
 
 std::string generate_stats(const Filter& filter)
 {
-    const size_t count = generate_update_message_list(filter).size();
+    const size_t count = generate_update_message_list(filter, false).size();
 
     boost::json::object stats_json = { { "session_count", std::to_string(count) } };
 
@@ -701,6 +701,34 @@ std::string generate_stats(const Filter& filter)
 
     return boost::json::serialize(state_message);
 
+}
+
+bool is_call_active(const std::string& ingress_call_id)
+{
+    if (!sip_calls.count(ingress_call_id))
+    {
+        return true;
+    }
+    if (sip_calls.at(ingress_call_id).state <= SIP_CALLSTATE_INCALL)
+    {
+        return true;
+    }
+
+    auto ingress_egress_subrange = egress_ingress_map.right.equal_range(ingress_call_id);
+
+    for( auto ingress_egress_it = ingress_egress_subrange.first; ingress_egress_it != ingress_egress_subrange.second; ingress_egress_it++)
+    {
+        if (!sip_calls.count(ingress_egress_it->second))
+        {
+            return true;
+        }
+        if (sip_calls.at(ingress_call_id).state <= SIP_CALLSTATE_INCALL)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool is_call_filtered_out(const std::string& ingress_call_id, const Filter& filter)
@@ -724,14 +752,15 @@ bool is_call_filtered_out(const std::string& ingress_call_id, const Filter& filt
     return false;
 }
 
-std::vector<std::string> generate_update_message_list(const Filter& filter)
+std::vector<std::string> generate_update_message_list(const Filter& filter, bool only_active)
 {
     std::vector<std::string> result;
     for( auto ingress_egress_it = egress_ingress_map.right.begin(); ingress_egress_it != egress_ingress_map.right.end(); ingress_egress_it = next_different_key(ingress_egress_it, egress_ingress_map.right.end()))
     {
-        if (!is_call_filtered_out(ingress_egress_it->first, filter))
+        const std::string ingress_call_id = ingress_egress_it->first;
+        if (!is_call_filtered_out(ingress_call_id, filter) && (!only_active || is_call_active(ingress_call_id)))
         {
-            const std::string update_message = prepare_sngrep_update(ingress_egress_it->first);
+            const std::string update_message = prepare_sngrep_update(ingress_call_id);
             result.push_back(update_message);
         }
     }
