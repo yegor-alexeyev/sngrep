@@ -71,6 +71,8 @@ struct SipCall
 
     explicit SipCall(struct sip_call * call);
 
+    void updateRtpData(struct sip_call * call);
+
     std::string call_id;
     call_state state;
     std::vector<RtpStream> streams;
@@ -125,5 +127,6 @@ std::vector<std::string> generate_update_message_list(const Filter& filter, bool
 std::string generate_stats(const Filter& filter);
 bool try_insert_to_telnet_backlog(const std::string& value);
 void init_state();
+void state_on_new_rtp_packet(struct rtp_stream * stream);
 
 #endif /* __SNGREP_STATE_H */

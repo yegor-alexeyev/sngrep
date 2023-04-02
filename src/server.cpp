@@ -618,6 +618,8 @@ void on_new_sip_message(struct sip_msg * msg)
     }
 }
 
-void on_new_active_call_info(const std::map<std::string, std::string> call_info)
+
+void on_new_rtp_packet(struct rtp_stream * stream)
 {
+    state_on_new_rtp_packet(stream);
 }

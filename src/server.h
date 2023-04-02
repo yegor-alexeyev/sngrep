@@ -7,6 +7,7 @@ extern "C" {
 
 void server_thread();
 void on_new_sip_message(struct sip_msg * msg);
+void on_new_rtp_packet(struct rtp_stream * msg);
 
 #ifdef __cplusplus
 }

@@ -49,12 +49,10 @@ RtpStream::RtpStream(rtp_stream_t *stream)
     m_reqresp = std::to_string(stream->media->msg->reqresp);
 }
 
-SipCall::SipCall(struct sip_call * call)
+void SipCall::updateRtpData(struct sip_call * call)
 {
-    call_id = std::string(call->callid);
-    state = (call_state)call->state;
-
     rtp_stream_t *stream;
+
     vector_iter_t streams_it = vector_iterator(call->streams);
 
     while ( (stream = (rtp_stream_t*)vector_iterator_next(&streams_it))) {
@@ -91,6 +89,18 @@ SipCall::SipCall(struct sip_call * call)
             a_rtp_payload_bytes = std::to_string(stream->payload_bytes_count);
         }
     }
+
+}
+
+SipCall::SipCall(struct sip_call * call)
+{
+    call_id = std::string(call->callid);
+    state = (call_state)call->state;
+
+    updateRtpData(call);
+
+
+
 
     sip_msg_t *first = (sip_msg_t *)vector_first(call->msgs);
     if (first->reqresp != SIP_METHOD_INVITE) 
@@ -417,23 +427,6 @@ if (is_field_fuzzy_filtered_out(FILTERS, #FIELD, call.FIELD)) { return true; }
     CHECK_CALL_IS_FILTERED_OUT(filter, destination_port);
 
 
-/*
-
-    auto maybe_ingress_leg = find_ingress_leg( callId);
-    if (!maybe_ingress_leg)
-    {
-        return true;
-    }
-
-    for (auto name_value: filter)
-    {
-        if (is_field_filtered_out(class4_info[*maybe_ingress_leg], name_value.first, name_value.second))
-        {
-            return true;
-        }
-    }
-
-*/
     return false;
 }
 
@@ -768,3 +761,20 @@ std::vector<std::string> generate_update_message_list(const Filter& filter, bool
     return result;
 }
 
+void state_on_new_rtp_packet(struct rtp_stream * stream)
+{
+
+        struct sip_call * call = stream_get_call(stream);
+        if (!call || !call->callid)
+        {
+            return;
+        }
+        auto it = sip_calls.find(call->callid);
+
+        if (it == sip_calls.end())
+        {
+            return;
+        }
+
+        it->second.updateRtpData(call);
+}
