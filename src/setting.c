@@ -107,7 +107,7 @@ setting_t settings[SETTING_COUNT] = {
     { SETTING_SERVER_WEBSOCKET_TOKEN,     "server.websocket.token",      SETTING_FMT_STRING,  "",      NULL },
     { SETTING_SERVER_UNCLASSIFIED_LIFETIME,     "server.unclassified.lifetime.seconds", SETTING_FMT_NUMBER,  "900",      NULL },
     { SETTING_SERVER_CLASSIFIED_LIFETIME,     "server.classified.lifetime.seconds", SETTING_FMT_NUMBER,  "1800",      NULL },
-    { SETTING_SERVER_PERIODIC_UPDATE_INTERVAL_MILLISECONDS,     "server.periodic.update.interval.seconds", SETTING_FMT_NUMBER,  "0",      NULL },
+    { SETTING_SERVER_PERIODIC_UPDATE_INTERVAL_MILLISECONDS,     "server.periodic.update.interval.milliseconds", SETTING_FMT_NUMBER,  "0",      NULL },
 };
 
 setting_t *
