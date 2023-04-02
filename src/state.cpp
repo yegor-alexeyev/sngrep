@@ -722,7 +722,7 @@ bool is_call_active(const std::string& ingress_call_id)
         {
             return true;
         }
-        if (sip_calls.at(ingress_call_id).state <= SIP_CALLSTATE_INCALL)
+        if (sip_calls.at(ingress_egress_it->second).state <= SIP_CALLSTATE_INCALL)
         {
             return true;
         }
