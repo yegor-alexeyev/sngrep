@@ -14,6 +14,7 @@
 
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/popen.hpp>
+#include <boost/process/v2/execute.hpp>
 
 
 #include  <functional>
@@ -106,13 +107,13 @@ bool process_auth(
     net::yield_context yield)
 {
     boost::system::error_code ec;
-    if (setting_get_value(SETTING_SERVER_WEBSOCKET_TOKEN) == nullptr)
+    if (setting_get_value(SETTING_SERVER_AUTH_SERVER) == nullptr)
     {
         return true;
     }
 
-    std::string token(setting_get_value(SETTING_SERVER_WEBSOCKET_TOKEN));
-    if (token.empty())
+    std::string url(setting_get_value(SETTING_SERVER_AUTH_SERVER));
+    if (url.empty())
     {
         return true;
     }
@@ -159,10 +160,14 @@ bool process_auth(
     {
         return false;
     }
-    if (members["token"] != token)
-    {
-        return false;
-    }
+
+    int a = boost::process::v2::async_execute(boost::process::v2::process(context, "authenticate.sh", {url, members["token"]}), yield[ec]);
+    printf("execution: %d %d\n", a, ec);
+
+    /* if (members["token"] != token) */
+    /* { */
+    /*     return false; */
+    /* } */
 
     return true;
 }
