@@ -161,13 +161,18 @@ bool process_auth(
         return false;
     }
 
-    int a = boost::process::v2::async_execute(boost::process::v2::process(context, "authenticate.sh", {url, members["token"]}), yield[ec]);
-    printf("execution: %d %d\n", a, ec);
+    int result = boost::process::v2::async_execute(boost::process::v2::process(context, "authenticate.sh", {url, members["token"]}), yield[ec]);
 
-    /* if (members["token"] != token) */
-    /* { */
-    /*     return false; */
-    /* } */
+    if (ec) 
+    {
+        fail(ec, "execute authenticate");
+        return false;
+    }
+
+    if (result != 0) 
+    {
+        return false;
+    }
 
     return true;
 }
