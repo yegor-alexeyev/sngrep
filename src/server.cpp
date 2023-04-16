@@ -3,6 +3,7 @@
 
 #include "server.h"
 #include "state.h"
+#include "amqp.h"
 
 
 
@@ -372,6 +373,8 @@ void process_message(SipCall& what, net::yield_context& yield)
             }
         }
 
+        publish_to_amqp(update_message);
+
     }
     else
     {
@@ -550,6 +553,11 @@ void server_thread()
 
     init_state();
 
+    std::jthread amqp_publisher(amqp_publisher_thread);
+
+
+
+
     if (listen_address == NULL)
     {
         exit(88);
@@ -586,6 +594,7 @@ void server_thread()
             &do_periodic_update, std::placeholders::_1));
 
     context.run();
+
 
     /* return EXIT_SUCCESS; */
 }

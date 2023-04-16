@@ -15,33 +15,33 @@ bool do_amqp_connection(net::yield_context& yield)
 
     if (!amqp_address || amqp_port == 0 || !amqp_username || !amqp_password || !amqp_exchange || !amqp_routing_key)
     {
-        std::cout << "AMPQ is not configured \n";
+        std::cout << "AMQP is not configured \n";
         return false;
     }
 
     amqp_connection_state_t amqp_connection = amqp_new_connection();
     amqp_socket_t *amqp_socket = amqp_tcp_socket_new(conn);
     if (!socket) {
-        std::cout << "AMPQ, error creating TCP socket \n";
+        std::cout << "AMQP, error creating TCP socket \n";
         return false;
     }
 
     int status = amqp_socket_open(socket, amqp_address, amqp_port);
     if (status) {
-        std::cout << "AMPQ, error connecting to  \n" << amqp_address << ":" << amqp_port;
+        std::cout << "AMQP, error connecting to  \n" << amqp_address << ":" << amqp_port;
         return true;
     }
 
     int login_ret = amqp_login(amqp_connection, "/", 0, 131072, 5/*hb*/, AMQP_SASL_METHOD_PLAIN, amqp_username, amqp_password);
     if (login_ret) {
-        std::cout << "AMPQ, error login \n";
+        std::cout << "AMQP, error login \n";
         return true;
     }
 
     amqp_channel_open(conn, channel_id);
     int reply_ret = amqp_get_rpc_reply(conn);
     if (reply_ret) {
-        std::cout << "AMPQ, error rpc reply \n";
+        std::cout << "AMQP, error rpc reply \n";
         return true;
     }
 
