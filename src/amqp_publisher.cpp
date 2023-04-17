@@ -6,11 +6,20 @@
 
 #include <amqp.h>
 #include <amqp_tcp_socket.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "setting.h"
 
+#ifdef __cplusplus
+}
+#endif
 
 
-boost::asio::io_context context;
+
+static boost::asio::io_context context;
 typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_code, std::string)> Channel;
 Channel ipc_channel(context, 100);
 

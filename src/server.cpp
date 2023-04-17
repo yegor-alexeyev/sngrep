@@ -57,7 +57,7 @@ typedef std::weak_ptr<Websocket> WebsocketWeakPtr;
 
 
 // The io_context is required for all I/O
-net::io_context context;
+static net::io_context context;
 
 boost::process::v2::popen call_processor(context);
 

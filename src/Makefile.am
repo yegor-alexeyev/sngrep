@@ -32,7 +32,8 @@ sngrep_LDADD+=-l:libboost_json.a
 sngrep_LDADD+=-l:libboost_context.a
 sngrep_LDADD+=-ldl
 sngrep_LDADD+=-lbacktrace
-
+sngrep_LDADD+=-lrabbitmq
+                                                   
 sngrep_SOURCES+=address.c packet.c sip.c sip_call.c sip_msg.c sip_attr.c main.c
 sngrep_SOURCES+=option.c group.c filter.c keybinding.c media.c setting.c rtp.c
 sngrep_SOURCES+=util.c hash.c vector.c curses/ui_panel.c curses/scrollbar.c
