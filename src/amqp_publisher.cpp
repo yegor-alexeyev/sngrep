@@ -5,6 +5,7 @@
 #include <boost/asio/experimental/concurrent_channel.hpp>
 
 #include <amqp.h>
+#include <amqp_tcp_socket.h>
 #include "setting.h"
 
 
@@ -31,28 +32,35 @@ bool do_amqp_connection(boost::asio::yield_context& yield)
     }
 
     amqp_connection_state_t amqp_connection = amqp_new_connection();
-    amqp_socket_t *amqp_socket = amqp_tcp_socket_new(conn);
-    if (!socket) {
+    amqp_socket_t *amqp_socket = amqp_tcp_socket_new(amqp_connection);
+    if (!amqp_socket) {
         std::cout << "AMQP, error creating TCP socket \n";
         return false;
     }
 
-    int status = amqp_socket_open(socket, amqp_address, amqp_port);
+    int status = amqp_socket_open(amqp_socket, amqp_address, amqp_port);
     if (status) {
         std::cout << "AMQP, error connecting to  \n" << amqp_address << ":" << amqp_port;
+        amqp_destroy_connection(amqp_connection);
         return true;
     }
 
-    int login_ret = amqp_login(amqp_connection, "/", 0, 131072, 5/*hb*/, AMQP_SASL_METHOD_PLAIN, amqp_username, amqp_password);
-    if (login_ret) {
+    amqp_rpc_reply_t login_ret = amqp_login(amqp_connection, "/", 0, 131072, 5/*hb*/, AMQP_SASL_METHOD_PLAIN, amqp_username, amqp_password);
+    if (login_ret.reply_type != AMQP_RESPONSE_NORMAL) {
         std::cout << "AMQP, error login \n";
+        amqp_destroy_connection(amqp_connection);
         return true;
     }
 
-    amqp_channel_open(conn, channel_id);
-    int reply_ret = amqp_get_rpc_reply(conn);
-    if (reply_ret) {
+    amqp_channel_open(amqp_connection, channel_id);
+    amqp_rpc_reply_t reply_ret = amqp_get_rpc_reply(amqp_connection);
+    if (reply_ret.reply_type != AMQP_RESPONSE_NORMAL) {
         std::cout << "AMQP, error rpc reply \n";
+
+        amqp_channel_close(amqp_connection, channel_id, AMQP_CHANNEL_ERROR);
+        amqp_connection_close(amqp_connection, AMQP_CHANNEL_ERROR);
+        amqp_destroy_connection(amqp_connection);
+
         return true;
     }
 
@@ -66,13 +74,17 @@ bool do_amqp_connection(boost::asio::yield_context& yield)
         props.content_type = amqp_cstring_bytes("application/json");
         props.delivery_mode = 2; /* persistent delivery mode */
 
-        int publish_ret = amqp_basic_publish(amqp_connection, 1, amqp_cstring_bytes(amqp_exchange),
+        int publish_ret = amqp_basic_publish(amqp_connection, channel_id, amqp_cstring_bytes(amqp_exchange),
                                     amqp_cstring_bytes(amqp_routing_key), 0, 0,
-                                    &props, amqp_cstring_bytes(message.c_str())),
+                                    &props, amqp_cstring_bytes(message.c_str()));
 
         if ( publish_ret)
         {
             //abandon current messagee
+ 
+            amqp_channel_close(amqp_connection, 1, AMQP_CHANNEL_ERROR);
+            amqp_connection_close(amqp_connection, AMQP_CHANNEL_ERROR);
+            amqp_destroy_connection(amqp_connection);
             return true;
         }
     }
@@ -82,7 +94,7 @@ void do_amqp(boost::asio::yield_context yield)
 {
     while (true)
     {
-        if (!do_amqp_connection())
+        if (!do_amqp_connection(yield))
         {
             return;
         }
