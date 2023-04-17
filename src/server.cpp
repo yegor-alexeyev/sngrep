@@ -3,7 +3,7 @@
 
 #include "server.h"
 #include "state.h"
-#include "amqp.h"
+#include "amqp_publisher.h"
 
 
 
@@ -33,6 +33,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <thread>
 #include <thread>
 #include <vector>
 #include <fstream>
@@ -553,7 +554,7 @@ void server_thread()
 
     init_state();
 
-    std::jthread amqp_publisher(amqp_publisher_thread);
+    std::thread amqp_publisher(amqp_thread);
 
 
 
@@ -596,6 +597,7 @@ void server_thread()
     context.run();
 
 
+     amqp_publisher.join();
     /* return EXIT_SUCCESS; */
 }
 

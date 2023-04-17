@@ -1,3 +1,4 @@
+#include <string>
 #ifndef __SNGREP_AMQP_H
 #define __SNGREP_AMQP_H
 

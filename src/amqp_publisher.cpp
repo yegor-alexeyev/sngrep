@@ -1,13 +1,24 @@
+#include <amqp_publisher.h>
+#include <thread>
+#include <iostream>
+#include <boost/asio/spawn.hpp>
+#include <boost/asio/experimental/concurrent_channel.hpp>
+
+#include <amqp.h>
+#include "setting.h"
+
+
+
 boost::asio::io_context context;
 typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_code, std::string)> Channel;
 Channel ipc_channel(context, 100);
 
-bool do_amqp_connection(net::yield_context& yield)
+bool do_amqp_connection(boost::asio::yield_context& yield)
 {
     const int channel_id = 1;
 
     const char* amqp_address = setting_get_value(SETTING_AMQP_ADDRESS);
-    int amqp_port = setting_get_value(SETTING_AMQP_PORT);
+    int amqp_port = setting_get_intvalue(SETTING_AMQP_PORT);
     const char* amqp_username = setting_get_value(SETTING_AMQP_USERNAME);
     const char* amqp_password = setting_get_value(SETTING_AMQP_PASSWORD);
     const char* amqp_exchange = setting_get_value(SETTING_AMQP_EXCHANGE);
@@ -67,7 +78,7 @@ bool do_amqp_connection(net::yield_context& yield)
     }
 }
 
-void do_amqp(net::yield_context yield)
+void do_amqp(boost::asio::yield_context yield)
 {
     while (true)
     {
@@ -81,7 +92,6 @@ void do_amqp(net::yield_context yield)
 
 void amqp_thread()
 {
-
 
     //spawn a amqp publisher coroutine
     boost::asio::spawn(context, std::bind( &do_amqp, std::placeholders::_1));
