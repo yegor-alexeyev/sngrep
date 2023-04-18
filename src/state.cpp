@@ -132,6 +132,11 @@ SipCall::SipCall(struct sip_call * call)
 
     }
 
+    if (call->reasontxt)
+    {
+        reason_header = call->reasontxt;
+    }
+
     source_ip = first->packet->src.ip;
     source_port = std::to_string(first->packet->src.port);
 
@@ -529,6 +534,8 @@ optionally_set_json_field(JSON_OBJECT, #FIELD_NAME, sip_call.FIELD_NAME)
 
         result_object["destination_ip"] = sip_call.destination_ip;
         result_object["destination_port"] = sip_call.destination_port;
+
+        MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, reason_header);
 
         MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, a_rtp_dest_ip);
         MAYBE_SET_SIP_CALL_JSON_FIELD(result_object, a_rtp_dest_port);
