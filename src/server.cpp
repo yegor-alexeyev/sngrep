@@ -532,6 +532,8 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
             if (!is_call_filtered_out(ingress_callid, session.second.filter))
                 session.first->write(boost::asio::buffer(update_message), ec);
         }
+
+        publish_to_amqp(update_message);
     }
 }
 
