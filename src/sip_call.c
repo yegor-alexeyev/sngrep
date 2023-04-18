@@ -84,6 +84,7 @@ call_destroy(sip_call_t *call)
     sng_free(call->callid);
     sng_free(call->xcallid);
     sng_free(call->reasontxt);
+    sng_free(call->identity_header);
     sng_free(call);
 }
 

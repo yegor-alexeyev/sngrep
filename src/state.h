@@ -105,6 +105,7 @@ struct SipCall
     std::optional<std::string> codec;
 
     std::optional<std::string> reason_header;
+    std::optional<std::string> identity_header;
 
     std::string a_rtp_payload_bytes;
     std::string b_rtp_payload_bytes;

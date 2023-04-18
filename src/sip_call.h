@@ -76,6 +76,8 @@ struct sip_call {
     bool locked;
     //! Last reason text value for this call
     char *reasontxt;
+    //! identity header
+    char *identity_header;
     //! Last warning text value for this call
     int warning;
     //! List of calls with with this call as X-Call-Id

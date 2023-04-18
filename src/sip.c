@@ -203,6 +203,7 @@ sip_init(int limit, int only_calls, int no_incomplete)
     regcomp(&calls.reg_reason, "Reason:[ ]*[^\r]*;text=\"([^\r]+)\"", match_flags);
     regcomp(&calls.reg_warning, "Warning:[ ]*([0-9]*)", match_flags);
 
+    regcomp(&calls.reg_identity, "^Identity:[ ]*([^ ]+)[ ]*\r$", match_flags);
 }
 
 void
@@ -228,6 +229,7 @@ sip_deinit()
     regfree(&calls.reg_body);
     regfree(&calls.reg_reason);
     regfree(&calls.reg_warning);
+    regfree(&calls.reg_identity);
 }
 
 
@@ -768,6 +770,12 @@ sip_parse_extra_headers(sip_msg_t *msg, const u_char *payload)
      if (regexec(&calls.reg_warning, (const char *)payload, 2, pmatch, 0) == 0) {
          strncpy(warning, (const char *)payload +  pmatch[1].rm_so, (int)pmatch[1].rm_eo - pmatch[1].rm_so);
          msg->call->warning = atoi(warning);
+     }
+
+     // Identity(todo INVITE ONLY?)
+     if (regexec(&calls.reg_identity, (const char *)payload, 2, pmatch, 0) == 0) {
+         msg->call->identity_header = sng_malloc((int)pmatch[1].rm_eo - pmatch[1].rm_so + 1);
+         strncpy(msg->call->identity_header, (const char *)payload +  pmatch[1].rm_so, (int)pmatch[1].rm_eo - pmatch[1].rm_so);
      }
 }
 
