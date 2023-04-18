@@ -370,7 +370,7 @@ void process_message(SipCall& what, net::yield_context& yield)
             {
                 session.first->async_write(boost::asio::buffer(update_message), yield[ec]);
                 if(ec)
-                    return fail(ec, "write_sngrep_update");
+                    fail(ec, "write_sngrep_update");
             }
         }
 
