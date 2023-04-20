@@ -42,3 +42,5 @@ TAGS
 # Vim swap files
 .*.swp
 .*.swo
+
+/src/Makefile.a

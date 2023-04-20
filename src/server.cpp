@@ -394,7 +394,6 @@ void do_periodic_update(net::yield_context yield)
     boost::system::error_code ec;
 
     boost::asio::steady_timer timer(context);
-    auto now = std::chrono::steady_clock::now();
     while (true)
     {
         timer.expires_after(std::chrono::milliseconds(interval_milliseconds));
@@ -540,11 +539,14 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
 void terminate_handler() {
     std::cout << boost::stacktrace::stacktrace();
 
-    exit(2);
+    std::abort();
+    /* exit(2); */
 }   
 
 void exit_handler() {
+    std::cout << boost::stacktrace::stacktrace();
     call_processor.interrupt();
+    std::abort();
 }   
 
 void server_thread()
@@ -596,10 +598,21 @@ void server_thread()
         std::bind(
             &do_periodic_update, std::placeholders::_1));
 
-    context.run();
+    try {
+        context.run();
+    } 
+    catch (std::exception& ex) 
+    {
+        std::cout << "server " << ex.what() << std::endl;
+    }
+    catch (...) 
+    {
+        std::cout << "server unknown exception" << std::endl;
+    }
 
+    stop_amqp();
+    amqp_publisher.join();
 
-     amqp_publisher.join();
     /* return EXIT_SUCCESS; */
 }
 

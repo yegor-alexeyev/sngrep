@@ -61,13 +61,7 @@ struct RtpStream
 
 struct SipCall
 {
-    explicit SipCall()
-    {
-        /*
-            Should not happen
-        */
-        exit(140);
-    }
+    explicit SipCall();
 
     explicit SipCall(struct sip_call * call);
 

@@ -1,5 +1,9 @@
 #include "state.h"
 
+#define BOOST_STACKTRACE_USE_BACKTRACE
+#include <boost/stacktrace.hpp>
+
+
 #include <boost/json/value_from.hpp>
 #include <boost/json/value_to.hpp>
 #include <boost/json/serialize.hpp>
@@ -20,6 +24,14 @@
 #include <functional>
 #include <iomanip>
 
+SipCall::SipCall()
+{
+    /*
+        Should not happen
+    */
+    std::cout << boost::stacktrace::stacktrace();
+    exit(140);
+}
 
 RtpStream::RtpStream(rtp_stream_t *stream)
 {
