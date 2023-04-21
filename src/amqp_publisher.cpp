@@ -113,7 +113,7 @@ bool do_amqp_connection()
         return true;
     }
 
-    amqp_rpc_reply_t login_ret = amqp_login(amqp_connection, "/", 0, 131072, 2/*hb*/, AMQP_SASL_METHOD_PLAIN, amqp_username, amqp_password);
+    amqp_rpc_reply_t login_ret = amqp_login(amqp_connection, "/", 0, 131072, 10/*hb*/, AMQP_SASL_METHOD_PLAIN, amqp_username, amqp_password);
     if (login_ret.reply_type != AMQP_RESPONSE_NORMAL) {
         std::cout << "AMQP, error login \n";
         amqp_destroy_connection(amqp_connection);
