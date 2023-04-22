@@ -30,7 +30,7 @@ SipCall::SipCall()
         Should not happen
     */
     std::cout << boost::stacktrace::stacktrace();
-    exit(140);
+    log_and_exit(140);
 }
 
 RtpStream::RtpStream(rtp_stream_t *stream)
@@ -45,7 +45,7 @@ RtpStream::RtpStream(rtp_stream_t *stream)
     dest_port = stream->dst.port;
     if (!stream->media)
     {
-        exit(100);
+        log_and_exit(100);
     }
 
     m_ip = std::string(stream->media->address.ip);
@@ -56,7 +56,7 @@ RtpStream::RtpStream(rtp_stream_t *stream)
 
     if (!stream->media->msg)
     {
-        exit(100);
+        log_and_exit(100);
     }
     m_reqresp = std::to_string(stream->media->msg->reqresp);
 }
@@ -72,11 +72,11 @@ void SipCall::updateRtpData(struct sip_call * call)
 
         if (!stream->media)
         {
-            exit(100);
+            log_and_exit(100);
         }
         if (!stream->media->msg)
         {
-            exit(101);
+            log_and_exit(101);
         }
 
         if (std::string(stream->media->type) != std::string("audio") ||
@@ -117,7 +117,7 @@ SipCall::SipCall(struct sip_call * call)
     sip_msg_t *first = (sip_msg_t *)vector_first(call->msgs);
     if (first->reqresp != SIP_METHOD_INVITE) 
     {
-        exit(99);
+        log_and_exit(99);
     }
 
     from = first->sip_from;
@@ -221,7 +221,7 @@ std::string get_string_setting(int id)
     const char* value = setting_get_value(id);
     if (!value)
     {
-        exit(888);
+        log_and_exit(888);
     }
     return std::string(value);
 
@@ -267,7 +267,7 @@ void cleanup_unclassified_backlog()
     int timeout = setting_get_intvalue(SETTING_SERVER_UNCLASSIFIED_LIFETIME);
     if (timeout < 0)
     {
-        exit(100);
+        log_and_exit(100);
     }
 
     while (!unclassified_backlog.empty() && difftime(now, unclassified_backlog.right.begin()->first) > timeout)
@@ -303,7 +303,7 @@ void cleanup_classified_backlog()
     int timeout = setting_get_intvalue(SETTING_SERVER_CLASSIFIED_LIFETIME);
     if (timeout < 0)
     {
-        exit(101);
+        log_and_exit(101);
     }
 
     while (!classified_backlog.empty() && difftime(now, classified_backlog.right.begin()->first) > timeout)
@@ -341,7 +341,7 @@ std::string call_state_to_string(call_state state)
         CALL_STATE_CASE_STATEMENT(DIVERTED);
         CALL_STATE_CASE_STATEMENT(BUSY);
         CALL_STATE_CASE_STATEMENT(COMPLETED);
-        default: exit(94);
+        default: log_and_exit(94);
     }
 }
 
@@ -650,7 +650,7 @@ std::string update_state_from_class4(const std::string& input_line)
 
     if (values.size() != class4_fields.size())
     {
-        exit(13);
+        log_and_exit(13);
     }
 
     std::string ingress_callid;
@@ -678,7 +678,7 @@ std::string update_state_from_class4(const std::string& input_line)
 
     if (ingress_callid.empty())
     {
-        exit(77);
+        log_and_exit(77);
     }
 
     if (egress_ingress_map.right.count(ingress_callid) == 0) {

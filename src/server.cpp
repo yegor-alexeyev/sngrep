@@ -400,7 +400,7 @@ void do_periodic_update(net::yield_context yield)
         timer.async_wait(yield[ec]);
         if (ec)
         {
-            exit(777);
+            log_and_exit(777);
         }
         for ( auto session: established_sessions)
         {
@@ -482,7 +482,7 @@ std::string async_read_line(T& proc, std::string& buffer, net::yield_context yie
 
     if (ec || n_read == 0)
     {
-        exit(100);
+        log_and_exit(100);
     }
 
     const std::string line = buffer.substr(0, n_read - 1);
@@ -495,6 +495,10 @@ void
 do_active_call_processor( net::io_context& ioc, net::yield_context yield)
 {
     boost::system::error_code ec;
+    if (!setting_get_value(SETTING_CLASS4_FIELDS) || !setting_get_value(SETTING_CLASS4_ADDRESS) || !setting_get_value(SETTING_CLASS4_PORT))
+    {
+        log_and_exit(33);
+    }
     call_processor = boost::process::v2::popen(ioc, "get_active_call.expect", {setting_get_value(SETTING_CLASS4_FIELDS), setting_get_value(SETTING_CLASS4_ADDRESS),setting_get_value(SETTING_CLASS4_PORT)});
 
     std::string buf;
@@ -509,7 +513,7 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
 
         if (result.size() <= 2)
         {
-            exit(73);
+            log_and_exit(73);
         }
 
         result.pop_back(); //remove question mark from the end of line
@@ -565,11 +569,11 @@ void server_thread()
 
     if (listen_address == NULL)
     {
-        exit(88);
+        log_and_exit(88);
     }
     if (listen_port == -1)
     {
-        exit(89);
+        log_and_exit(89);
     }
 
     auto const address = net::ip::make_address(listen_address);
@@ -619,7 +623,7 @@ void server_thread()
 void on_new_sip_message(struct sip_msg * msg)
 {
     if (!msg->call) {
-        exit(81);
+        log_and_exit(81);
     }
 
     if (!call_is_invite(msg->call))
@@ -628,7 +632,7 @@ void on_new_sip_message(struct sip_msg * msg)
     }
 
     if (!msg->call->callid) {
-        exit(82);
+        log_and_exit(82);
     }
 
     /* boost::asio::post(context, */
@@ -650,7 +654,7 @@ void on_new_sip_message(struct sip_msg * msg)
     bool send_result = sngrep_channel.try_send(boost::asio::error::eof, sip_call);
     if (!send_result)
     {
-        exit(14);
+        log_and_exit(14);
     }
 }
 

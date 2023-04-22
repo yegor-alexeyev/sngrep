@@ -33,6 +33,12 @@ extern "C" {
 }
 #endif
 
+inline void log_and_exit(int code)
+{
+    std::cout << "program failed with code " << code << std::endl;
+    exit(code);
+}
+
 struct Filter
 {
     std::map<std::string, std::string> ingress;
