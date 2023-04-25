@@ -650,6 +650,21 @@ std::string update_state_from_class4(const std::string& input_line)
 
     if (values.size() != class4_fields.size())
     {
+        std::cout << "class4 configuration mismatch" << std::endl;
+        std::cout << "received " << values.size() << " fields" << std::endl;
+        std::cout << "expected " << class4_fields.size() << " fields" << std::endl;
+        std::cout << "received string: " << input_line  << std::endl;
+        std::cout << "expected format: ";
+        bool first = true;
+        for (auto v: class4_fields) {
+            if (!first)
+            {
+                std::cout << ";";
+            }
+            std::cout << v;
+            first = false;
+        }
+        std::cout << std::endl;
         log_and_exit(13);
     }
 
