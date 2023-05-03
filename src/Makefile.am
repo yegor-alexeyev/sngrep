@@ -24,7 +24,7 @@ if WITH_ZLIB
 sngrep_CFLAGS+=$(ZLIB_CFLAGS)
 sngrep_LDADD+=$(ZLIB_LIBS)
 endif
-sngrep_CXXFLAGS=-std=c++2a
+sngrep_CXXFLAGS=-std=c++17
 sngrep_CXXFLAGS+=-I/tmp/sngrep.server.build.local/include
 sngrep_LDFLAGS=-L/tmp/sngrep.server.build.local/lib
 sngrep_LDADD+=-l:libboost_coroutine.a

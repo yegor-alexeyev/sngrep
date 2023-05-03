@@ -45,11 +45,38 @@ struct Filter
     std::map<std::string, std::string> egress;
 };
 
+#define COMPARE(field) if (!(field == rh.field)) { return false; }
+
+
+inline bool operator ==(const timeval& a, const timeval& b)
+{
+    return a.tv_sec == b.tv_sec && a.tv_usec == b.tv_usec;
+}
+
 struct RtpStream
 {
     explicit RtpStream(rtp_stream_t *stream);
 
-    bool operator==(const RtpStream&) const = default;
+    bool operator==(const RtpStream& rh) const {
+
+        COMPARE(count);
+        COMPARE(type);
+        COMPARE(src_ip);
+        COMPARE(src_port);
+
+        COMPARE(dest_ip);
+        COMPARE(dest_port);
+        
+        COMPARE(m_ip);
+        COMPARE(m_port);
+        COMPARE(m_type);
+        COMPARE(m_fmtcode);
+        COMPARE(m_format);
+        COMPARE(m_reqresp);
+
+        return true;
+
+    }
 
     int count;
     int type;
@@ -67,11 +94,6 @@ struct RtpStream
     std::string m_reqresp;
 };
 
-inline bool operator ==(const timeval& a, const timeval& b)
-{
-    return a.tv_sec == b.tv_sec && a.tv_usec == b.tv_usec;
-}
-
 struct SipCall
 {
     explicit SipCall();
@@ -79,7 +101,46 @@ struct SipCall
     explicit SipCall(struct sip_call * call);
 
 
-    bool operator==(const SipCall&) const = default;
+    bool operator==(const SipCall& rh) const
+    {
+        COMPARE(call_id);
+        COMPARE(state);
+        COMPARE(streams);
+
+        COMPARE(from);
+        COMPARE(to);
+        COMPARE(ani);
+        COMPARE(dnis);
+        COMPARE(init_time);
+        COMPARE(ring_time);
+        COMPARE(answer_time);
+        COMPARE(hangup_time);
+
+        COMPARE(source_ip);
+        COMPARE(source_port);
+
+        COMPARE(destination_ip);
+        COMPARE(destination_port);
+
+        COMPARE(a_rtp_dest_ip);
+        COMPARE(a_rtp_dest_port);
+
+        COMPARE(b_rtp_dest_ip);
+        COMPARE(b_rtp_dest_port);
+
+        COMPARE(a_rtp_packet_count);
+        COMPARE(b_rtp_packet_count);
+
+        COMPARE(codec);
+
+        COMPARE(reason_header);
+        COMPARE(identity_header);
+
+        COMPARE(a_rtp_payload_bytes);
+        COMPARE(b_rtp_payload_bytes);
+
+        return true;
+    }
 
 
     void updateRtpData(struct sip_call * call);
