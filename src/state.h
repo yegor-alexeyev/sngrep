@@ -49,6 +49,8 @@ struct RtpStream
 {
     explicit RtpStream(rtp_stream_t *stream);
 
+    bool operator==(const RtpStream&) const = default;
+
     int count;
     int type;
     std::string src_ip;
@@ -65,11 +67,20 @@ struct RtpStream
     std::string m_reqresp;
 };
 
+inline bool operator ==(const timeval& a, const timeval& b)
+{
+    return a.tv_sec == b.tv_sec && a.tv_usec == b.tv_usec;
+}
+
 struct SipCall
 {
     explicit SipCall();
 
     explicit SipCall(struct sip_call * call);
+
+
+    bool operator==(const SipCall&) const = default;
+
 
     void updateRtpData(struct sip_call * call);
 
@@ -117,7 +128,7 @@ std::set<std::string> vector_to_set(const std::vector<std::string> v);
 std::optional<std::string> find_ingress_leg(const std::string leg_id);
 
 bool is_call_filtered_out(const std::string& ingressId, const Filter& filter);
-void update_state_from_sngrep(SipCall& sngrep_call);
+bool update_state_from_sngrep(SipCall& sngrep_call);
 bool has_class4_info(const std::string& callid);
 std::map<std::string, std::string> collect_string_members(const boost::json::object& jo);
 boost::json::value gather_leg_fields(const std::string& leg_id);

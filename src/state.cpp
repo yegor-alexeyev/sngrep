@@ -452,8 +452,16 @@ if (is_field_fuzzy_filtered_out(FILTERS, #FIELD, call.FIELD)) { return true; }
     return false;
 }
 
-void update_state_from_sngrep(SipCall& sngrep_call)
+bool update_state_from_sngrep(SipCall& sngrep_call)
 {
+
+    /* typedef std::map<std::string, SipCall> SipCalls; */
+    if (sip_calls.count(sngrep_call.call_id) && sngrep_call == sip_calls.at(sngrep_call.call_id))
+    {
+        return false;
+    }
+
+
     sip_calls.insert_or_assign( sngrep_call.call_id, sngrep_call );
 
     
@@ -467,6 +475,8 @@ void update_state_from_sngrep(SipCall& sngrep_call)
 
     cleanup_unclassified_backlog();
     cleanup_classified_backlog();
+
+    return true;
 }
 
 bool has_class4_info(const std::string& call_id)

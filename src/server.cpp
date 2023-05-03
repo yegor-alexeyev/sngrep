@@ -343,7 +343,10 @@ void process_message(ClientMessage& message, net::yield_context& yield)
 
 void process_message(SipCall& what, net::yield_context& yield)
 {
-    update_state_from_sngrep(what);
+    if (!update_state_from_sngrep(what))
+    {
+        return;
+    }
 
     /* std::cout << "next from channel" << what.call_id << "\n"; */
 
@@ -409,6 +412,7 @@ void do_periodic_update(net::yield_context yield)
     }
     throw std::system_error(std::make_error_code(std::errc::timed_out));   
 }
+
 void do_multiplex(net::yield_context yield)
 {
 
