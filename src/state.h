@@ -105,7 +105,7 @@ struct SipCall
     {
         COMPARE(call_id);
         COMPARE(state);
-        COMPARE(streams);
+        /* COMPARE(streams); */
 
         COMPARE(from);
         COMPARE(to);
@@ -128,16 +128,16 @@ struct SipCall
         COMPARE(b_rtp_dest_ip);
         COMPARE(b_rtp_dest_port);
 
-        COMPARE(a_rtp_packet_count);
-        COMPARE(b_rtp_packet_count);
+        /* COMPARE(a_rtp_packet_count); */
+        /* COMPARE(b_rtp_packet_count); */
 
         COMPARE(codec);
 
         COMPARE(reason_header);
         COMPARE(identity_header);
 
-        COMPARE(a_rtp_payload_bytes);
-        COMPARE(b_rtp_payload_bytes);
+        /* COMPARE(a_rtp_payload_bytes); */
+        /* COMPARE(b_rtp_payload_bytes); */
 
         return true;
     }
@@ -147,7 +147,7 @@ struct SipCall
 
     std::string call_id;
     call_state state;
-    std::vector<RtpStream> streams;
+    /* std::vector<RtpStream> streams; */
 
     std::string from;
     std::string to;

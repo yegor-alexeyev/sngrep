@@ -68,7 +68,7 @@ void SipCall::updateRtpData(struct sip_call * call)
     vector_iter_t streams_it = vector_iterator(call->streams);
 
     while ( (stream = (rtp_stream_t*)vector_iterator_next(&streams_it))) {
-        streams.emplace_back( stream );
+        /* streams.emplace_back( stream ); */
 
         if (!stream->media)
         {
@@ -577,7 +577,7 @@ optionally_set_json_field(JSON_OBJECT, #FIELD_NAME, sip_call.FIELD_NAME)
         result_object["a_rtp_payload_bytes"] = sip_call.a_rtp_payload_bytes;
         result_object["b_rtp_payload_bytes"] = sip_call.b_rtp_payload_bytes;
 
-        boost::json::array streams_json;
+        /* boost::json::array streams_json; */
         /* for (const auto& stream: sip_call.streams) */
         /* { */
         /*     std::map<std::string, std::string> fields; */
