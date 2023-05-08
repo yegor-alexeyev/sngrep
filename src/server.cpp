@@ -66,13 +66,18 @@ boost::process::v2::popen call_processor(context);
 
 
 
+struct ServerMessage
+{
+    std::string command;
+};
+
 struct ClientMessage
 {
     WebsocketWeakPtr client;
     std::string command;
 };
 
-typedef std::variant<SipCall, ClientMessage> Message;
+typedef std::variant<SipCall, ClientMessage, ServerMessage> Message;
 
 typedef boost::asio::experimental::concurrent_channel<void(boost::system::error_code, Message)> MessageChannel;
 
@@ -318,6 +323,17 @@ void send_list_to_client(WebsocketPtr client, net::yield_context& yield, bool on
     }
 }
 
+void process_message(ServerMessage& message, net::yield_context& yield)
+{
+    if (message.command == "periodic_update")
+    {
+        for ( auto session: established_sessions)
+        {
+            send_list_to_client(session.first, yield, true);
+        }
+    }
+}
+
 void process_message(ClientMessage& message, net::yield_context& yield)
 {
     WebsocketPtr client = message.client.lock();
@@ -405,10 +421,9 @@ void do_periodic_update(net::yield_context yield)
         {
             log_and_exit(777);
         }
-        for ( auto session: established_sessions)
-        {
-            send_list_to_client(session.first, yield, true);
-        }
+
+        sngrep_channel.try_send(boost::asio::error::eof, ServerMessage({"periodic_update" }));
+
     }
     throw std::system_error(std::make_error_code(std::errc::timed_out));   
 }

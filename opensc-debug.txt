@@ -1,0 +1,84 @@
+P:4635; T:0x139674887935680 19:42:47.292 [onepin-opensc-pkcs11] ctx.c:858:sc_context_create: ===================================
+P:4635; T:0x139674887935680 19:42:47.292 [onepin-opensc-pkcs11] ctx.c:859:sc_context_create: opensc version: 0.23.0
+P:4635; T:0x139674887935680 19:42:47.292 [onepin-opensc-pkcs11] reader-pcsc.c:889:pcsc_init: PC/SC options: connect_exclusive=0 disconnect_action=0 transaction_end_action=0 reconnect_action=0 enable_pinpad=1 enable_pace=1
+P:4635; T:0x139674887935680 19:42:47.292 [onepin-opensc-pkcs11] reader-pcsc.c:1376:pcsc_detect_readers: called
+P:4635; T:0x139674887935680 19:42:47.292 [onepin-opensc-pkcs11] reader-pcsc.c:1389:pcsc_detect_readers: Probing PC/SC readers
+P:4635; T:0x139674887935680 19:42:47.292 [onepin-opensc-pkcs11] reader-pcsc.c:1442:pcsc_detect_readers: Establish PC/SC context
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] reader-pcsc.c:1437:pcsc_detect_readers: SCardListReaders failed: 0x8010002e
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] reader-pcsc.c:1558:pcsc_detect_readers: returning with: -1101 (No readers found)
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] slot.c:393:card_detect_all: Detect all cards
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] slot.c:432:card_detect_all: All cards detected
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] pkcs11-global.c:355:C_Initialize: C_Initialize() = CKR_OK
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] pkcs11-global.c:433:get_info_version: C_GetInfo()
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] pkcs11-global.c:492:C_GetSlotList: C_GetSlotList(token=0, plug-n-play)
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] pkcs11-global.c:494:C_GetSlotList: VSS C_GetSlotList before ctx_detect_detect
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] reader-pcsc.c:1376:pcsc_detect_readers: called
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] reader-pcsc.c:1389:pcsc_detect_readers: Probing PC/SC readers
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] reader-pcsc.c:1437:pcsc_detect_readers: SCardListReaders failed: 0x8010002e
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] reader-pcsc.c:1558:pcsc_detect_readers: returning with: -1101 (No readers found)
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] pkcs11-global.c:500:C_GetSlotList: VSS C_GetSlotList after ctx_detect_readers
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] slot.c:393:card_detect_all: Detect all cards
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] slot.c:432:card_detect_all: All cards detected
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] pkcs11-global.c:505:C_GetSlotList: returned 0 slots
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] pkcs11-global.c:492:C_GetSlotList: C_GetSlotList(token=0, refresh)
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] pkcs11-global.c:494:C_GetSlotList: VSS C_GetSlotList before ctx_detect_detect
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] pkcs11-global.c:500:C_GetSlotList: VSS C_GetSlotList after ctx_detect_readers
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] slot.c:393:card_detect_all: Detect all cards
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] slot.c:432:card_detect_all: All cards detected
+P:4635; T:0x139674887935680 19:42:47.296 [onepin-opensc-pkcs11] pkcs11-global.c:505:C_GetSlotList: returned 0 slots
+P:5144; T:0x140273518302912 19:43:09.496 [onepin-opensc-pkcs11] ctx.c:858:sc_context_create: ===================================
+P:5144; T:0x140273518302912 19:43:09.496 [onepin-opensc-pkcs11] ctx.c:859:sc_context_create: opensc version: 0.23.0
+P:5144; T:0x140273518302912 19:43:09.496 [onepin-opensc-pkcs11] reader-pcsc.c:889:pcsc_init: PC/SC options: connect_exclusive=0 disconnect_action=0 transaction_end_action=0 reconnect_action=0 enable_pinpad=1 enable_pace=1
+P:5144; T:0x140273518302912 19:43:09.496 [onepin-opensc-pkcs11] reader-pcsc.c:1376:pcsc_detect_readers: called
+P:5144; T:0x140273518302912 19:43:09.496 [onepin-opensc-pkcs11] reader-pcsc.c:1389:pcsc_detect_readers: Probing PC/SC readers
+P:5144; T:0x140273518302912 19:43:09.496 [onepin-opensc-pkcs11] reader-pcsc.c:1442:pcsc_detect_readers: Establish PC/SC context
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] reader-pcsc.c:1437:pcsc_detect_readers: SCardListReaders failed: 0x8010002e
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] reader-pcsc.c:1558:pcsc_detect_readers: returning with: -1101 (No readers found)
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] slot.c:393:card_detect_all: Detect all cards
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] slot.c:432:card_detect_all: All cards detected
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] pkcs11-global.c:355:C_Initialize: C_Initialize() = CKR_OK
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] pkcs11-global.c:433:get_info_version: C_GetInfo()
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] pkcs11-global.c:492:C_GetSlotList: C_GetSlotList(token=0, plug-n-play)
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] pkcs11-global.c:494:C_GetSlotList: VSS C_GetSlotList before ctx_detect_detect
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] reader-pcsc.c:1376:pcsc_detect_readers: called
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] reader-pcsc.c:1389:pcsc_detect_readers: Probing PC/SC readers
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] reader-pcsc.c:1437:pcsc_detect_readers: SCardListReaders failed: 0x8010002e
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] reader-pcsc.c:1558:pcsc_detect_readers: returning with: -1101 (No readers found)
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] pkcs11-global.c:500:C_GetSlotList: VSS C_GetSlotList after ctx_detect_readers
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] slot.c:393:card_detect_all: Detect all cards
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] slot.c:432:card_detect_all: All cards detected
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] pkcs11-global.c:505:C_GetSlotList: returned 0 slots
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] pkcs11-global.c:492:C_GetSlotList: C_GetSlotList(token=0, refresh)
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] pkcs11-global.c:494:C_GetSlotList: VSS C_GetSlotList before ctx_detect_detect
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] pkcs11-global.c:500:C_GetSlotList: VSS C_GetSlotList after ctx_detect_readers
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] slot.c:393:card_detect_all: Detect all cards
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] slot.c:432:card_detect_all: All cards detected
+P:5144; T:0x140273518302912 19:43:09.500 [onepin-opensc-pkcs11] pkcs11-global.c:505:C_GetSlotList: returned 0 slots
+P:5525; T:0x140195366164160 19:43:29.733 [onepin-opensc-pkcs11] ctx.c:858:sc_context_create: ===================================
+P:5525; T:0x140195366164160 19:43:29.733 [onepin-opensc-pkcs11] ctx.c:859:sc_context_create: opensc version: 0.23.0
+P:5525; T:0x140195366164160 19:43:29.733 [onepin-opensc-pkcs11] reader-pcsc.c:889:pcsc_init: PC/SC options: connect_exclusive=0 disconnect_action=0 transaction_end_action=0 reconnect_action=0 enable_pinpad=1 enable_pace=1
+P:5525; T:0x140195366164160 19:43:29.734 [onepin-opensc-pkcs11] reader-pcsc.c:1376:pcsc_detect_readers: called
+P:5525; T:0x140195366164160 19:43:29.734 [onepin-opensc-pkcs11] reader-pcsc.c:1389:pcsc_detect_readers: Probing PC/SC readers
+P:5525; T:0x140195366164160 19:43:29.734 [onepin-opensc-pkcs11] reader-pcsc.c:1442:pcsc_detect_readers: Establish PC/SC context
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] reader-pcsc.c:1437:pcsc_detect_readers: SCardListReaders failed: 0x8010002e
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] reader-pcsc.c:1558:pcsc_detect_readers: returning with: -1101 (No readers found)
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] slot.c:393:card_detect_all: Detect all cards
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] slot.c:432:card_detect_all: All cards detected
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] pkcs11-global.c:355:C_Initialize: C_Initialize() = CKR_OK
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] pkcs11-global.c:433:get_info_version: C_GetInfo()
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] pkcs11-global.c:492:C_GetSlotList: C_GetSlotList(token=0, plug-n-play)
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] pkcs11-global.c:494:C_GetSlotList: VSS C_GetSlotList before ctx_detect_detect
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] reader-pcsc.c:1376:pcsc_detect_readers: called
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] reader-pcsc.c:1389:pcsc_detect_readers: Probing PC/SC readers
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] reader-pcsc.c:1437:pcsc_detect_readers: SCardListReaders failed: 0x8010002e
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] reader-pcsc.c:1558:pcsc_detect_readers: returning with: -1101 (No readers found)
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] pkcs11-global.c:500:C_GetSlotList: VSS C_GetSlotList after ctx_detect_readers
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] slot.c:393:card_detect_all: Detect all cards
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] slot.c:432:card_detect_all: All cards detected
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] pkcs11-global.c:505:C_GetSlotList: returned 0 slots
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] pkcs11-global.c:492:C_GetSlotList: C_GetSlotList(token=0, refresh)
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] pkcs11-global.c:494:C_GetSlotList: VSS C_GetSlotList before ctx_detect_detect
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] pkcs11-global.c:500:C_GetSlotList: VSS C_GetSlotList after ctx_detect_readers
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] slot.c:393:card_detect_all: Detect all cards
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] slot.c:432:card_detect_all: All cards detected
+P:5525; T:0x140195366164160 19:43:29.737 [onepin-opensc-pkcs11] pkcs11-global.c:505:C_GetSlotList: returned 0 slots
