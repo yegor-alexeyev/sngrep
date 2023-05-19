@@ -197,6 +197,8 @@ std::string prepare_sngrep_update(const std::string ingress_leg_id);
 std::optional<std::string> find_ingress_leg(const std::string leg_id);
 std::string update_state_from_class4(const std::string& input_line);
 
+void send_call_to_amqp(const std::string call_id);
+void send_all_call_legs_to_amqp(const std::string call_id);
 
 std::vector<std::string> generate_update_message_list(const Filter& filter, bool only_active);
 std::string generate_stats(const Filter& filter);

@@ -364,6 +364,8 @@ void process_message(SipCall& what, net::yield_context& yield)
         return;
     }
 
+    send_call_to_amqp(what.call_id);
+
     /* std::cout << "next from channel" << what.call_id << "\n"; */
 
     //std::cout << "callid from sngrep: " << what.callId() << " " << what.state << "\n";
@@ -393,7 +395,6 @@ void process_message(SipCall& what, net::yield_context& yield)
             }
         }
 
-        publish_to_amqp(update_message);
 
     }
     else
@@ -541,6 +542,7 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
         if (!try_insert_to_telnet_backlog(result))
         {
             //filter out duplicate lines
+            //events to amqp will be resent once in 10 minutes
             continue;
         }
 
@@ -555,7 +557,8 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
                 session.first->write(boost::asio::buffer(update_message), ec);
         }
 
-        publish_to_amqp(update_message);
+        send_all_call_legs_to_amqp(ingress_callid);
+
     }
 }
 

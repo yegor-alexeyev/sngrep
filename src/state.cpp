@@ -1,4 +1,5 @@
 #include "state.h"
+#include "amqp_publisher.h"
 
 #define BOOST_STACKTRACE_USE_BACKTRACE
 #include <boost/stacktrace.hpp>
@@ -8,6 +9,7 @@
 #include <boost/json/value_to.hpp>
 #include <boost/json/serialize.hpp>
 #include <boost/json/parse.hpp>
+#include <boost/json/kind.hpp>
 
 #include <boost/bimap.hpp>
 #include <boost/bimap/multiset_of.hpp>
@@ -296,6 +298,31 @@ void cleanup_single_call(const std::string& callid)
     unclassified_backlog.left.erase(callid);
 }
 
+void send_call_to_amqp(const std::string call_id)
+{
+
+    /* auto ingress_egress_subrange = egress_ingress_map.right.equal_range(ingress_leg_id); */
+    /* std::for_each(ingress_egress_subrange.first, ingress_egress_subrange.second, [&egress_legs_json](const auto& ingress_egress) { */
+    /*     egress_legs_json.push_back( gather_leg_fields( ingress_egress.second ) ); */
+    /* }); */
+
+
+
+
+    publish_to_amqp(boost::json::serialize(gather_leg_fields( call_id)));
+}
+
+void send_all_legs_too_amqp(const std::string ingress_call_id)
+{
+
+    send_call_to_amqp(ingress_call_id);
+
+    auto ingress_egress_subrange = egress_ingress_map.right.equal_range(ingress_call_id);
+    std::for_each(ingress_egress_subrange.first, ingress_egress_subrange.second, [](const auto& ingress_egress) {
+        send_call_to_amqp(ingress_egress.second);
+    });
+}
+
 void cleanup_classified_backlog()
 {
     time_t now = time(NULL);
@@ -531,7 +558,13 @@ boost::json::value gather_leg_fields(const std::string& leg_id)
 {
     const auto sip_call_iterator = sip_calls.find(leg_id);
 
-    boost::json::value result = boost::json::value_from(class4_info[leg_id]);
+    boost::json::value result( boost::json::object_kind );
+
+    if (class4_info.count(leg_id))
+    {
+        result = boost::json::value_from(class4_info[leg_id]);
+    }
+
     boost::json::object& result_object = result.as_object();
 
     result_object["call_id"] = leg_id;

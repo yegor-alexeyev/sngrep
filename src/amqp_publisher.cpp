@@ -187,6 +187,8 @@ void amqp_thread()
 
 void publish_to_amqp(const std::string& message)
 {
+    
+
     ipc_channel.try_send(boost::asio::error::eof, message);
 }
 
