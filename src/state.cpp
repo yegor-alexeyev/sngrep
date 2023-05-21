@@ -312,7 +312,7 @@ void send_call_to_amqp(const std::string call_id)
     publish_to_amqp(boost::json::serialize(gather_leg_fields( call_id)));
 }
 
-void send_all_legs_too_amqp(const std::string ingress_call_id)
+void send_all_call_legs_to_amqp(const std::string ingress_call_id)
 {
 
     send_call_to_amqp(ingress_call_id);
