@@ -546,7 +546,8 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
             continue;
         }
 
-        std::string ingress_callid = update_state_from_class4(result);
+        const std::string egress_callid = update_state_from_class4(result);
+        const std::string ingress_callid = get_ingress_leg(egress_callid);
         std::string update_message = prepare_sngrep_update(ingress_callid);
 
         for ( auto session: established_sessions)
@@ -557,7 +558,8 @@ do_active_call_processor( net::io_context& ioc, net::yield_context yield)
                 session.first->write(boost::asio::buffer(update_message), ec);
         }
 
-        send_all_call_legs_to_amqp(ingress_callid);
+        send_call_to_amqp(ingress_callid);
+        send_call_to_amqp(egress_callid);
 
     }
 }

@@ -187,18 +187,17 @@ std::vector<std::string> read_file_as_lines(const std::string& filename);
 std::vector<std::string> init_class4_fields_list(const std::string& filename);
 std::set<std::string> vector_to_set(const std::vector<std::string> v);
 std::optional<std::string> find_ingress_leg(const std::string leg_id);
+std::string get_ingress_leg(const std::string& egress_leg_id);
 
 bool is_call_filtered_out(const std::string& ingressId, const Filter& filter);
 bool update_state_from_sngrep(SipCall& sngrep_call);
 bool has_class4_info(const std::string& callid);
 std::map<std::string, std::string> collect_string_members(const boost::json::object& jo);
-boost::json::value gather_leg_fields(const std::string& leg_id);
+boost::json::object gather_leg_fields(const std::string& leg_id);
 std::string prepare_sngrep_update(const std::string ingress_leg_id);
-std::optional<std::string> find_ingress_leg(const std::string leg_id);
 std::string update_state_from_class4(const std::string& input_line);
 
 void send_call_to_amqp(const std::string call_id);
-void send_all_call_legs_to_amqp(const std::string call_id);
 
 std::vector<std::string> generate_update_message_list(const Filter& filter, bool only_active);
 std::string generate_stats(const Filter& filter);

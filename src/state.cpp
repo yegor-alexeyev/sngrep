@@ -301,27 +301,28 @@ void cleanup_single_call(const std::string& callid)
 void send_call_to_amqp(const std::string call_id)
 {
 
-    /* auto ingress_egress_subrange = egress_ingress_map.right.equal_range(ingress_leg_id); */
-    /* std::for_each(ingress_egress_subrange.first, ingress_egress_subrange.second, [&egress_legs_json](const auto& ingress_egress) { */
-    /*     egress_legs_json.push_back( gather_leg_fields( ingress_egress.second ) ); */
-    /* }); */
+    boost::json::object amqp_event_json = gather_leg_fields( call_id); 
 
+    if (egress_ingress_map.right.count(call_id) > 0)
+    {
+        //leg is ingress
+        auto ingress_egress_subrange = egress_ingress_map.right.equal_range(call_id);
+        boost::json::array egress_legs;
+        std::for_each(ingress_egress_subrange.first, ingress_egress_subrange.second, [&egress_legs](const auto& ingress_egress) {
+            egress_legs.push_back( boost::json::string(ingress_egress.second) );
+        });
+        amqp_event_json["egress_callids"] = egress_legs;
+    }
 
+    if (egress_ingress_map.left.count(call_id) > 0)
+    {
+        const std::string ingress_leg_id = egress_ingress_map.left.find(call_id)->second;
+        amqp_event_json["ingress_callid"] = ingress_leg_id;
+    }
 
-
-    publish_to_amqp(boost::json::serialize(gather_leg_fields( call_id)));
+    publish_to_amqp(boost::json::serialize(amqp_event_json));
 }
 
-void send_all_call_legs_to_amqp(const std::string ingress_call_id)
-{
-
-    send_call_to_amqp(ingress_call_id);
-
-    auto ingress_egress_subrange = egress_ingress_map.right.equal_range(ingress_call_id);
-    std::for_each(ingress_egress_subrange.first, ingress_egress_subrange.second, [](const auto& ingress_egress) {
-        send_call_to_amqp(ingress_egress.second);
-    });
-}
 
 void cleanup_classified_backlog()
 {
@@ -554,7 +555,7 @@ void optionally_set_json_timeval_field(boost::json::object& object, const std::s
     }
 }
 
-boost::json::value gather_leg_fields(const std::string& leg_id)
+boost::json::object gather_leg_fields(const std::string& leg_id)
 {
     const auto sip_call_iterator = sip_calls.find(leg_id);
 
@@ -633,7 +634,7 @@ optionally_set_json_field(JSON_OBJECT, #FIELD_NAME, sip_call.FIELD_NAME)
 
         /* result_object["streams"] = streams_json; */
     }
-    return result;
+    return result_object;
 
 }
 
@@ -654,6 +655,16 @@ std::string prepare_sngrep_update(const std::string ingress_leg_id)
     boost::json::object state_message = { { "callgroup", call_group_json } };
 
     return boost::json::serialize(state_message);
+}
+
+std::string get_ingress_leg(const std::string& egress_leg_id)
+{
+    auto result =  egress_ingress_map.left.find(egress_leg_id);
+    if (result == egress_ingress_map.left.end())
+    {
+        exit(58);
+    }
+    return result->second;
 }
 
 std::optional<std::string> find_ingress_leg(const std::string leg_id)
