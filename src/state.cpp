@@ -662,7 +662,7 @@ std::string get_ingress_leg(const std::string& egress_leg_id)
     auto result =  egress_ingress_map.left.find(egress_leg_id);
     if (result == egress_ingress_map.left.end())
     {
-        exit(58);
+        log_and_exit(58);
     }
     return result->second;
 }
@@ -775,7 +775,7 @@ std::string update_state_from_class4(const std::string& input_line)
     cleanup_unclassified_backlog();
     cleanup_classified_backlog();
 
-    return ingress_callid;
+    return egress_callid;
 }
 
 std::string generate_stats(const Filter& filter)
