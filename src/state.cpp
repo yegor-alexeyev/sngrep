@@ -223,13 +223,18 @@ std::string get_string_setting(int id)
     const char* value = setting_get_value(id);
     if (!value)
     {
-        log_and_exit(888);
+        log_and_exit(14);
     }
     return std::string(value);
 
 }
 void init_state()
 {
+    if (setting_get_value(SETTING_CLASS4_FIELDS) == NULL)
+    {
+        std::cout << "Error, server.class4.fields is not specified" << std::endl;
+        log_and_exit(15);
+    }
     boost::split(class4_fields, setting_get_value(SETTING_CLASS4_FIELDS), boost::algorithm::is_any_of(","));
     class4_fields.insert(class4_fields.begin(), "UUID_special");
 
