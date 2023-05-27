@@ -589,44 +589,44 @@ void server_thread()
     std::thread amqp_publisher(amqp_thread);
 
 
-
-
-    if (listen_address == NULL)
-    {
-        log_and_exit(88);
-    }
-    if (listen_port == -1)
-    {
-        log_and_exit(89);
-    }
-
-    auto const address = net::ip::make_address(listen_address);
-    auto const port = static_cast<unsigned short>(listen_port);
-
-    // Spawns an active call script processor
-    boost::asio::spawn(context,
-        std::bind( &do_active_call_processor, std::ref(context), std::placeholders::_1)
-    );
-
-    // Spawn a listening port
-    boost::asio::spawn(context,
-        std::bind(
-            &do_listen,
-            std::ref(context),
-            tcp::endpoint{address, port},
-            std::placeholders::_1));
-
-    //spawn a multiplexer
-    boost::asio::spawn(context,
-        std::bind(
-            &do_multiplex, std::placeholders::_1));
-
-    //spawn a periodic update
-    boost::asio::spawn(context,
-        std::bind(
-            &do_periodic_update, std::placeholders::_1));
-
     try {
+
+
+        if (listen_address == NULL)
+        {
+            log_and_exit(88);
+        }
+        if (listen_port == -1)
+        {
+            log_and_exit(89);
+        }
+
+        auto const address = net::ip::make_address(listen_address);
+        auto const port = static_cast<unsigned short>(listen_port);
+
+        // Spawns an active call script processor
+        boost::asio::spawn(context,
+            std::bind( &do_active_call_processor, std::ref(context), std::placeholders::_1)
+        );
+
+        // Spawn a listening port
+        boost::asio::spawn(context,
+            std::bind(
+                &do_listen,
+                std::ref(context),
+                tcp::endpoint{address, port},
+                std::placeholders::_1));
+
+        //spawn a multiplexer
+        boost::asio::spawn(context,
+            std::bind(
+                &do_multiplex, std::placeholders::_1));
+
+        //spawn a periodic update
+        boost::asio::spawn(context,
+            std::bind(
+                &do_periodic_update, std::placeholders::_1));
+
         context.run();
     } 
     catch (std::exception& ex) 
